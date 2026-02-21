@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"shmoopicks/src/internal/auth"
 	"shmoopicks/src/internal/core/apphttp"
 	"shmoopicks/src/internal/core/config"
 	"shmoopicks/src/internal/core/db"
@@ -13,7 +14,7 @@ import (
 )
 
 func Start(ctx context.Context, config *config.Config) {
-	_, err := db.NewDB(config.DbPath)
+	db, err := db.NewDB(config.DbPath)
 	if err != nil {
 		slog.Error("Failed to create database", "error", err)
 		os.Exit(1)
@@ -23,8 +24,14 @@ func Start(ctx context.Context, config *config.Config) {
 
 	rootMux.Handle("/static/", apphttp.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
+	authHandler := auth.NewHttpHandler(db)
+	rootMux.Handle("/", apphttp.AppHandlerFunc(authHandler.GetLoginPage))
+
+	appMux := apphttp.NewWrappedMux(*config, apphttp.JwtMiddleware)
+	rootMux.Use("/app/", appMux)
+
 	dashboardHandler := dashboard.NewHttpHandler()
-	rootMux.Handle("/dashboard", apphttp.AppHandlerFunc(dashboardHandler.HandleGetDashboard))
+	appMux.Handle("/app/dashboard", apphttp.AppHandlerFunc(dashboardHandler.GetDashboardPage))
 
 	addr := fmt.Sprintf(":%s", config.Port)
 	slog.Info("Starting server", "addr", addr)

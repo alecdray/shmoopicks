@@ -13,7 +13,7 @@ func NewHttpHandler() *HttpHandler {
 	return &HttpHandler{}
 }
 
-func (h *HttpHandler) HandleGetDashboard(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
-	dashboardComponent := Dashboard()
-	dashboardComponent.Render(r.Context(), w)
+func (h *HttpHandler) GetDashboardPage(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+	dashboardPage := DashboardPage()
+	dashboardPage.Render(r.Context(), w)
 }

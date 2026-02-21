@@ -1,17 +1,17 @@
-package dashboard
+package auth
 
 import (
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/core/utils"
 )
 
-templ DashboardPage() {
+templ LoginPage() {
 	@templates.RootComponent(templates.RootProps{
 		Title: utils.CreatePageTitle("Dashboard"),
 	}) {
 		@templates.NavBarComponent(templates.NaveBarProps{
 			ActivePage: templates.HomePage,
 		})
-		hello world
+		Login
 	}
 }

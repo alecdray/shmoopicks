@@ -15,14 +15,16 @@ func init() {
 }
 
 type Config struct {
-	Port   string
-	DbPath string
+	Port      string
+	DbPath    string
+	JwtSecret string
 }
 
 func LoadConfig() *Config {
 	return &Config{
-		Port:   GetEnvOrDefault("PORT", "8080"),
-		DbPath: GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
+		Port:      GetEnvOrDefault("PORT", "8080"),
+		DbPath:    GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
+		JwtSecret: GetEnvOrDefault("JWT_SECRET", "secret"),
 	}
 }
 

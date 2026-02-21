@@ -12,23 +12,14 @@ type AppHandler interface {
 
 type AppHandlerFunc func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request)
 
-func WrapHandler(handler http.Handler, middlewares ...Middleware) AppHandlerFunc {
-	return ApplyMiddleware(func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
-		handler.ServeHTTP(w, r)
-	}, middlewares...)
-}
-
 func (f AppHandlerFunc) ServeHTTP(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
 	f(ctx, w, r)
 }
 
-type Middleware func(AppHandlerFunc) AppHandlerFunc
-
-func ApplyMiddleware(handler AppHandlerFunc, middlewares ...Middleware) AppHandlerFunc {
-	for _, middleware := range middlewares {
-		handler = middleware(handler)
-	}
-	return handler
+func WrapHandler(handler http.Handler, middlewares ...Middleware) AppHandlerFunc {
+	return ApplyMiddleware(func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r)
+	}, middlewares...)
 }
 
 type wrappedMux struct {
@@ -65,4 +56,8 @@ func (wm *wrappedMux) Handle(pattern string, handler AppHandler, middlewares ...
 
 func (wm *wrappedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wm.mux.ServeHTTP(w, r)
+}
+
+func (wm *wrappedMux) Use(pattern string, mux *wrappedMux) {
+	wm.mux.Handle(pattern, mux)
 }

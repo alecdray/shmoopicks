@@ -5,24 +5,24 @@ import (
 	"shmoopicks/src/internal/core/config"
 )
 
-type AppCtx struct {
+type Ctx struct {
 	context.Context
 	config config.Config
 	jwt    *Claims
 }
 
-func NewAppCtx(ctx context.Context, config config.Config) AppCtx {
-	return AppCtx{Context: ctx, config: config}
+func NewCtx(ctx context.Context, config config.Config) Ctx {
+	return Ctx{Context: ctx, config: config}
 }
 
-func (ctx AppCtx) Config() config.Config {
+func (ctx Ctx) Config() config.Config {
 	return ctx.config
 }
 
-func (ctx *AppCtx) SetJwt(jwt Claims) {
+func (ctx *Ctx) SetJwt(jwt Claims) {
 	ctx.jwt = &jwt
 }
 
-func (ctx AppCtx) IsAuthenticated() bool {
+func (ctx Ctx) IsAuthenticated() bool {
 	return ctx.jwt != nil
 }

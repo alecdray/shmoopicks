@@ -16,7 +16,7 @@ func NewHttpHandler(db *db.DB) *HttpHandler {
 	}
 }
 
-func (h *HttpHandler) GetLoginPage(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+func (h *HttpHandler) GetLoginPage(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 	loginPage := LoginPage()
 	loginPage.Render(r.Context(), w)
 }

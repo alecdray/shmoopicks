@@ -6,58 +6,58 @@ import (
 	"shmoopicks/src/internal/core/config"
 )
 
-type AppHandler interface {
-	ServeHTTP(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request)
+type Handler interface {
+	ServeHTTP(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request)
 }
 
-type AppHandlerFunc func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request)
+type HandlerFunc func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request)
 
-func (f AppHandlerFunc) ServeHTTP(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+func (f HandlerFunc) ServeHTTP(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 	f(ctx, w, r)
 }
 
-func WrapHandler(handler http.Handler, middlewares ...Middleware) AppHandlerFunc {
-	return ApplyMiddleware(func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+func WrapHandler(handler http.Handler, middlewares ...Middleware) HandlerFunc {
+	return ApplyMiddleware(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		handler.ServeHTTP(w, r)
 	}, middlewares...)
 }
 
-type wrappedMux struct {
+type mux struct {
 	mux        *http.ServeMux
 	config     config.Config
 	middleware []Middleware
 }
 
-func NewWrappedMux(config config.Config, middlewares ...Middleware) *wrappedMux {
-	return &wrappedMux{
+func NewMux(config config.Config, middlewares ...Middleware) *mux {
+	return &mux{
 		mux:        http.NewServeMux(),
 		config:     config,
 		middleware: middlewares,
 	}
 }
 
-func (wm *wrappedMux) wrapHandler(handler AppHandler) http.HandlerFunc {
+func (wm *mux) wrapHandler(handler Handler) http.HandlerFunc {
 	handlerFunc := ApplyMiddleware(handler.ServeHTTP, wm.middleware...)
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := appctx.NewAppCtx(r.Context(), wm.config)
+		ctx := appctx.NewCtx(r.Context(), wm.config)
 		handlerFunc(ctx, w, r)
 	}
 }
 
-func (wm *wrappedMux) HandleFunc(pattern string, handler AppHandler, middlewares ...Middleware) {
+func (wm *mux) HandleFunc(pattern string, handler Handler, middlewares ...Middleware) {
 	handler = ApplyMiddleware(handler.ServeHTTP, middlewares...)
 	wm.mux.HandleFunc(pattern, wm.wrapHandler(handler))
 }
 
-func (wm *wrappedMux) Handle(pattern string, handler AppHandler, middlewares ...Middleware) {
+func (wm *mux) Handle(pattern string, handler Handler, middlewares ...Middleware) {
 	handler = ApplyMiddleware(handler.ServeHTTP, middlewares...)
 	wm.mux.Handle(pattern, wm.wrapHandler(handler))
 }
 
-func (wm *wrappedMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (wm *mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	wm.mux.ServeHTTP(w, r)
 }
 
-func (wm *wrappedMux) Use(pattern string, mux *wrappedMux) {
+func (wm *mux) Use(pattern string, mux *mux) {
 	wm.mux.Handle(pattern, mux)
 }

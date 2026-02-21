@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-type Middleware func(AppHandlerFunc) AppHandlerFunc
+type Middleware func(HandlerFunc) HandlerFunc
 
-func ApplyMiddleware(handler AppHandlerFunc, middlewares ...Middleware) AppHandlerFunc {
+func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc {
 	for _, middleware := range middlewares {
 		handler = middleware(handler)
 	}
 	return handler
 }
 
-func JwtMiddleware(next AppHandlerFunc) AppHandlerFunc {
-	return func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+func JwtMiddleware(next HandlerFunc) HandlerFunc {
+	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		// Get token from Authorization header
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
@@ -65,9 +65,9 @@ func (w *RequestLoggingMiddlewareResponseWriter) Duration() time.Duration {
 	return time.Since(w.startTime)
 }
 
-func RequestLoggingMiddleware(next AppHandlerFunc) AppHandlerFunc {
+func RequestLoggingMiddleware(next HandlerFunc) HandlerFunc {
 	slog.Info("Initializing logging middleware")
-	return func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		ww := &RequestLoggingMiddlewareResponseWriter{ResponseWriter: w, statusCode: 200, startTime: time.Now()}
 		next(ctx, ww, r)
 		slog.InfoContext(ctx, "Request", "status", ww.statusCode, "method", r.Method, "path", r.URL.Path, "url", r.URL.String(), "duration", ww.Duration())

@@ -21,21 +21,21 @@ func Start(ctx context.Context, config *config.Config) {
 		os.Exit(1)
 	}
 
-	rootMux := apphttp.NewWrappedMux(*config, apphttp.RequestLoggingMiddleware)
+	rootMux := apphttp.NewMux(*config, apphttp.RequestLoggingMiddleware)
 
 	rootMux.Handle("/static/", apphttp.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
 	authHandler := auth.NewHttpHandler(db)
-	rootMux.Handle("/{$}", apphttp.AppHandlerFunc(authHandler.GetLoginPage))
+	rootMux.Handle("/{$}", apphttp.HandlerFunc(authHandler.GetLoginPage))
 
-	appMux := apphttp.NewWrappedMux(*config, apphttp.JwtMiddleware)
+	appMux := apphttp.NewMux(*config, apphttp.JwtMiddleware)
 	rootMux.Use("/app/", appMux)
 
 	dashboardHandler := dashboard.NewHttpHandler()
-	appMux.Handle("/app/dashboard", apphttp.AppHandlerFunc(dashboardHandler.GetDashboardPage))
+	appMux.Handle("/app/dashboard", apphttp.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers
-	rootMux.HandleFunc("/not-found", apphttp.AppHandlerFunc(func(ctx appctx.AppCtx, w http.ResponseWriter, r *http.Request) {
+	rootMux.HandleFunc("/not-found", apphttp.HandlerFunc(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return

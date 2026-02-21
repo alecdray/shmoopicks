@@ -1,0 +1,22 @@
+package templates
+
+type PageLayoutProps struct {
+	Title string
+}
+
+templ PageLayoutComponent(props PageLayoutProps) {
+	@RootComponent(RootProps{
+		Title: props.Title,
+	}) {
+		<div
+			class="navbar bg-base-100 shadow-sm"
+		>
+			<a class="text-5xl font-brand m-3" href="/" hx-boost="true">shmoopicks</a>
+		</div>
+		<div
+			class="w-full max-w-7xl p-6"
+		>
+			{ children... }
+		</div>
+	}
+}

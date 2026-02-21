@@ -1,0 +1,26 @@
+package templates
+
+type RootProps struct {
+	Title string
+}
+
+templ RootComponent(props RootProps) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<title>{ props.Title }</title>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<link rel="icon" sizes="any" type="image/svg+xml" href="/static/favicon.svg"/>
+			<link rel="stylesheet" href="/static/main.css"/>
+			<script src="/static/htmx.min.js"></script>
+			<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+			<link rel="preconnect" href="https://fonts.googleapis.com"/>
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+			<link href="https://fonts.googleapis.com/css2?family=Carter+One&family=Knewave&family=Sedgwick+Ave+Display&display=swap" rel="stylesheet"/>
+			<script src="https://kit.fontawesome.com/03c1599055.js" crossorigin="anonymous"></script>
+		</head>
+		<body class="w-screen h-screen min-w-xs flex flex-col items-center">
+			{ children... }
+		</body>
+	</html>
+}

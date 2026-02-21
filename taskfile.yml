@@ -1,0 +1,57 @@
+version: "3"
+
+dotenv:
+  - .env
+
+vars: {}
+
+tasks:
+  default:
+    cmds:
+      - task -a
+  build/templ:
+    cmds:
+      - templ generate
+  build/tailwind:
+    cmds:
+      - npx @tailwindcss/cli -i ./static/src/main.css -o ./static/public/main.css
+  build/server:
+    cmds:
+      - go build -v -o ./bin/app ./src/cmd/app.go
+  build:
+    cmds:
+      - task build/templ build/tailwind build/server
+  run:
+    cmds:
+      - go run ./src/cmd/app.go
+  dev/templ:
+    cmds:
+      - templ generate --watch --proxy="http://localhost:$PORT" --open-browser=false -v
+  dev/server:
+    cmds:
+      - >
+        air
+        --build.cmd "go build -v -o ./bin/app ./src/cmd/app.go"
+        --build.entrypoint "./bin/app"
+        --build.delay "100"
+        --build.exclude_dir "node_modules"
+        --build.include_ext "go"
+        --build.stop_on_error false
+        --misc.clean_on_exit true
+  dev/tailwind:
+    cmds:
+      - npx --yes @tailwindcss/cli -i ./static/src/main.css -o ./static/public/main.css --watch
+  dev/sync-assets:
+    cmds:
+      - >
+        air
+        --build.cmd "templ generate --notify-proxy"
+        --build.delay "100"
+        --build.exclude_dir "node_modules"
+        --build.include_ext "tmpl,css"
+  dev:
+    deps:
+      - dev/server
+      - dev/tailwind
+      - dev/templ
+      - dev/sync-assets

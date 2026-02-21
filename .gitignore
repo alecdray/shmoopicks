@@ -30,3 +30,8 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+node_modules/
+bin/
+tmp/
+*_templ.go

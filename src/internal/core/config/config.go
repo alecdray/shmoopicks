@@ -15,13 +15,14 @@ func init() {
 }
 
 type Config struct {
-	Port       string
-	ConfigPath string
+	Port   string
+	DbPath string
 }
 
 func LoadConfig() *Config {
 	return &Config{
-		Port: GetEnvOrDefault("PORT", "8080"),
+		Port:   GetEnvOrDefault("PORT", "8080"),
+		DbPath: GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
 	}
 }
 

@@ -16,7 +16,8 @@ type ctxKey struct {
 }
 
 var (
-	ctxKeyApp = ctxKey{name: "app"}
+	ctxKeyApp       = ctxKey{name: "app"}
+	ctxKeyRequestId = ctxKey{name: "request_id"}
 )
 
 func getContextXValue[T any](ctx ContextX, key ctxKey) (T, error) {
@@ -52,4 +53,12 @@ func (ctx ContextX) App() (app.App, error) {
 
 func (ctx ContextX) WithApp(app app.App) ContextX {
 	return withContextXValue(ctx, ctxKeyApp, app)
+}
+
+func (ctx ContextX) RequestId() (string, error) {
+	return getContextXValue[string](ctx, ctxKeyRequestId)
+}
+
+func (ctx ContextX) WithRequestId(requestId string) ContextX {
+	return withContextXValue(ctx, ctxKeyRequestId, requestId)
 }

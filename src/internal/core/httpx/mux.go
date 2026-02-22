@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/contextx"
+
+	"github.com/google/uuid"
 )
 
 type Handler interface {
@@ -39,8 +41,11 @@ func NewMux(app app.App, middlewares ...Middleware) *mux {
 func (wm *mux) wrapHandler(handler Handler) http.HandlerFunc {
 	handlerFunc := ApplyMiddleware(handler.ServeHTTP, wm.middleware...)
 	return func(w http.ResponseWriter, r *http.Request) {
+		requestId := uuid.New().String()
+
 		ctx := contextx.NewContextX(r.Context()).
-			WithApp(wm.app)
+			WithApp(wm.app).
+			WithRequestId(requestId)
 
 		handlerFunc(w, r.WithContext(ctx))
 	}

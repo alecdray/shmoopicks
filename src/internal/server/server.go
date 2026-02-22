@@ -13,6 +13,8 @@ import (
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/dashboard"
 	"shmoopicks/src/internal/spotify"
+
+	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
 func Start(ctx context.Context, config *config.Config) {
@@ -30,6 +32,8 @@ func Start(ctx context.Context, config *config.Config) {
 		config.SpotifyClientId,
 		config.SpotifyClientSecret,
 		fmt.Sprintf("%s/spotify/callback", config.Host),
+		spotifyauth.ScopeUserLibraryRead,
+		spotifyauth.ScopeUserReadRecentlyPlayed,
 	)
 	authHandler := auth.NewHttpHandler(db, spotifyAuthService)
 	rootMux.Handle("/{$}", apphttp.HandlerFunc(authHandler.GetLoginPage))
@@ -39,7 +43,7 @@ func Start(ctx context.Context, config *config.Config) {
 	appMux := apphttp.NewMux(*config, apphttp.JwtMiddleware)
 	rootMux.Use("/app/", appMux)
 
-	dashboardHandler := dashboard.NewHttpHandler()
+	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService)
 	appMux.Handle("/app/dashboard", apphttp.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers

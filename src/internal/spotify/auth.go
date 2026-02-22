@@ -8,7 +8,6 @@ import (
 
 	spotify "github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
-	"golang.org/x/oauth2"
 )
 
 var (
@@ -43,6 +42,15 @@ func (auth *AuthService) GetClientWithCallback(ctx appctx.Ctx, state string, r *
 	return spotify.New(auth.Client(ctx, token)), nil
 }
 
-func (auth *AuthService) GetClient(ctx appctx.Ctx, token *oauth2.Token) *spotify.Client {
-	return spotify.New(auth.Client(ctx, token))
+func (auth *AuthService) GetClient(ctx appctx.Ctx) (*spotify.Client, error) {
+	claims, err := ctx.GetJwt()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get JWT claims: %w", err)
+	}
+
+	if claims.SpotifyToken == nil {
+		return nil, fmt.Errorf("spotify token not found in JWT claims")
+	}
+
+	return spotify.New(auth.Client(ctx, claims.SpotifyToken)), nil
 }

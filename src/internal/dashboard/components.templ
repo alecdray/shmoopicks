@@ -1,17 +1,38 @@
 package dashboard
 
 import (
+	"fmt"
+	spotify "github.com/zmb3/spotify/v2"
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/core/utils"
 )
 
-templ DashboardPage() {
+type DashboardPageProps struct {
+	Title                string
+	Tracks               []spotify.SavedTrack
+	RecentlyPlayedTracks map[string]struct{}
+}
+
+templ DashboardPage(props DashboardPageProps) {
 	@templates.RootComponent(templates.RootProps{
 		Title: utils.CreatePageTitle("Dashboard"),
 	}) {
 		@templates.NavBarComponent(templates.NaveBarProps{
 			ActivePage: templates.HomePage,
+			IsLoggedIn: true,
 		})
-		hello world
+		<div class="p-5">
+			<h1>Welcome to shmoopicks!</h1>
+			<ul>
+				for _, track := range props.Tracks {
+					<li>
+						if _, ok := props.RecentlyPlayedTracks[string(track.ID)]; ok {
+							<span class="badge badge-success">Recently Played</span>
+						}
+						{ fmt.Sprintf("%s by %s | %s", track.Name, track.Artists[0].Name, track.AddedAt) }
+					</li>
+				}
+			</ul>
+		</div>
 	}
 }

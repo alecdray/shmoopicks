@@ -9,6 +9,7 @@ const (
 
 type NaveBarProps struct {
 	ActivePage NavPage
+	IsLoggedIn bool
 }
 
 templ NavBarComponent(props NaveBarProps) {
@@ -31,7 +32,17 @@ templ NavBarComponent(props NaveBarProps) {
 			</div>
 		</div>
 		<div class="navbar-end">
-			<div class="flex m-3"></div>
+			<div class="flex m-3">
+				if props.IsLoggedIn {
+					<a href="/logout">
+						<button
+							class="btn btn-ghost btn-circle"
+						>
+							logout
+						</button>
+					</a>
+				}
+			</div>
 		</div>
 	</div>
 }

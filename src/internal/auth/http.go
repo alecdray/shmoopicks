@@ -85,25 +85,18 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !a.HasClaims() {
-		err = a.SetClaims(w, *app.NewClaims())
-		if err != nil {
-			err = fmt.Errorf("failed to set JWT: %w", err)
-			httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
-			return
-		}
+	claims := a.Claims()
+	if claims == nil {
+		claims = app.NewClaims()
 	}
-
-	err = a.UpdateClaims(w, func(jwt app.Claims) app.Claims {
-		jwt.SpotifyToken = token
-		return jwt
-	})
+	claims.SpotifyToken = token
+	err = a.SetClaims(w, claims)
 	if err != nil {
 		err = fmt.Errorf("failed to update JWT with Spotify token: %w", err)
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	slog.Info("JWT updated with Spotify token", "token", token)
+	ctx = ctx.WithApp(a)
 
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	http.Redirect(w, r.WithContext(ctx), "/", http.StatusSeeOther)
 }

@@ -50,12 +50,8 @@ func (auth *AuthService) GetClient(ctx contextx.ContextX) (*spotify.Client, erro
 		slog.DebugContext(ctx, err.Error())
 	}
 
-	claims, err := a.GetClaims()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get JWT claims: %w", err)
-	}
-
-	if claims.SpotifyToken == nil {
+	claims := a.Claims()
+	if claims == nil || claims.SpotifyToken == nil {
 		return nil, fmt.Errorf("spotify token not found in JWT claims")
 	}
 

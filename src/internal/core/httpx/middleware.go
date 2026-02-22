@@ -35,7 +35,7 @@ func JwtMiddleware(next HandlerFunc) HandlerFunc {
 		}
 
 		// Add claims to request context
-		err = a.SetClaims(w, *claims)
+		err = a.SetClaims(w, claims)
 		if err != nil {
 			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
 			return

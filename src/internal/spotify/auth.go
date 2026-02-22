@@ -43,7 +43,7 @@ func (auth *AuthService) GetClientWithCallback(ctx appctx.Ctx, state string, r *
 }
 
 func (auth *AuthService) GetClient(ctx appctx.Ctx) (*spotify.Client, error) {
-	claims, err := ctx.GetJwt()
+	claims, err := ctx.GetClaims()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JWT claims: %w", err)
 	}

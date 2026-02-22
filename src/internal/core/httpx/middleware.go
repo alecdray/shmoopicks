@@ -1,4 +1,4 @@
-package apphttp
+package httpx
 
 import (
 	"fmt"
@@ -22,13 +22,13 @@ func JwtMiddleware(next HandlerFunc) HandlerFunc {
 
 		claims, err := appctx.ValidateClaimsFromRequest(r, ctx.Config().JwtSecret)
 		if err != nil || claims.SpotifyToken == nil {
-			ctx.DeleteJwt(w)
+			ctx.DeleteClaims(w)
 			HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
 			return
 		}
 
 		// Add claims to request context
-		err = ctx.SetJwt(w, *claims)
+		err = ctx.SetClaims(w, *claims)
 		if err != nil {
 			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
 			return

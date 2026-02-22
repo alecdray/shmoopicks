@@ -1,9 +1,6 @@
 package auth
 
-import (
-	"shmoopicks/src/internal/core/templates"
-	"shmoopicks/src/internal/core/utils"
-)
+import "shmoopicks/src/internal/core/templates"
 
 type LoginPageProps struct {
 	authUrl string
@@ -11,7 +8,7 @@ type LoginPageProps struct {
 
 templ LoginPage(props LoginPageProps) {
 	@templates.RootComponent(templates.RootProps{
-		Title: utils.CreatePageTitle("Dashboard"),
+		Title: templates.CreatePageTitle("Dashboard"),
 	}) {
 		@templates.NavBarComponent(templates.NaveBarProps{
 			ActivePage: templates.HomePage,

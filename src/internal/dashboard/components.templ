@@ -4,7 +4,6 @@ import (
 	"fmt"
 	spotify "github.com/zmb3/spotify/v2"
 	"shmoopicks/src/internal/core/templates"
-	"shmoopicks/src/internal/core/utils"
 )
 
 type DashboardPageProps struct {
@@ -15,7 +14,7 @@ type DashboardPageProps struct {
 
 templ DashboardPage(props DashboardPageProps) {
 	@templates.RootComponent(templates.RootProps{
-		Title: utils.CreatePageTitle("Dashboard"),
+		Title: templates.CreatePageTitle("Dashboard"),
 	}) {
 		@templates.NavBarComponent(templates.NaveBarProps{
 			ActivePage: templates.HomePage,

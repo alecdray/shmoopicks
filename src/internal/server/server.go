@@ -8,9 +8,9 @@ import (
 	"os"
 	"shmoopicks/src/internal/auth"
 	"shmoopicks/src/internal/core/appctx"
-	"shmoopicks/src/internal/core/apphttp"
 	"shmoopicks/src/internal/core/config"
 	"shmoopicks/src/internal/core/db"
+	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/dashboard"
 	"shmoopicks/src/internal/spotify"
 
@@ -24,9 +24,9 @@ func Start(ctx context.Context, config *config.Config) {
 		os.Exit(1)
 	}
 
-	rootMux := apphttp.NewMux(*config, apphttp.RequestLoggingMiddleware)
+	rootMux := httpx.NewMux(*config, httpx.RequestLoggingMiddleware)
 
-	rootMux.Handle("/static/", apphttp.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
+	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
 	spotifyAuthService := spotify.NewAuthService(
 		config.SpotifyClientId,
@@ -36,18 +36,18 @@ func Start(ctx context.Context, config *config.Config) {
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	)
 	authHandler := auth.NewHttpHandler(db, spotifyAuthService)
-	rootMux.Handle("/{$}", apphttp.HandlerFunc(authHandler.GetLoginPage))
-	rootMux.Handle("/logout", apphttp.HandlerFunc(authHandler.Logout))
-	rootMux.Handle("/spotify/callback", apphttp.HandlerFunc(authHandler.AuthorizeSpotify))
+	rootMux.Handle("/{$}", httpx.HandlerFunc(authHandler.GetLoginPage))
+	rootMux.Handle("/logout", httpx.HandlerFunc(authHandler.Logout))
+	rootMux.Handle("/spotify/callback", httpx.HandlerFunc(authHandler.AuthorizeSpotify))
 
-	appMux := apphttp.NewMux(*config, apphttp.JwtMiddleware)
+	appMux := httpx.NewMux(*config, httpx.JwtMiddleware)
 	rootMux.Use("/app/", appMux)
 
 	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService)
-	appMux.Handle("/app/dashboard", apphttp.HandlerFunc(dashboardHandler.GetDashboardPage))
+	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers
-	rootMux.HandleFunc("/not-found", apphttp.HandlerFunc(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+	rootMux.HandleFunc("/not-found", httpx.HandlerFunc(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return

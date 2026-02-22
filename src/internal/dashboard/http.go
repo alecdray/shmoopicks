@@ -4,17 +4,20 @@ import (
 	"fmt"
 	"net/http"
 	"shmoopicks/src/internal/core/contextx"
+	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
 	"time"
 )
 
 type HttpHandler struct {
 	spotifyAuth *spotify.AuthService
+	mb          *musicbrainz.Service
 }
 
-func NewHttpHandler(spotifyAuth *spotify.AuthService) *HttpHandler {
+func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service) *HttpHandler {
 	return &HttpHandler{
 		spotifyAuth: spotifyAuth,
+		mb:          mb,
 	}
 }
 
@@ -49,6 +52,21 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	playedTrackIdsSet := make(map[string]struct{})
 	for _, track := range playedTracks {
 		playedTrackIdsSet[string(track.Track.ID)] = struct{}{}
+	}
+
+	for _, track := range savedTracks {
+		match, err := h.mb.FindRecording(ctx, musicbrainz.Recording{}, track.Name, track.Artists[0].Name)
+		if err != nil {
+			err = fmt.Errorf("failed to find recording: %w", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if match != nil {
+			fmt.Printf("Found recording: %s by %s\n", match.Title, match.ArtistCredit[0].Name)
+		} else {
+			fmt.Println("No match found")
+		}
 	}
 
 	dashboardPage := DashboardPage(DashboardPageProps{

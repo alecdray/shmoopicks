@@ -23,6 +23,9 @@ type Config struct {
 	StateCode           string
 	SpotifyClientId     string
 	SpotifyClientSecret string
+	AppName             string
+	AppVersion          string
+	ContactEmail        string
 }
 
 func LoadConfig() *Config {
@@ -36,6 +39,9 @@ func LoadConfig() *Config {
 		StateCode:           GetEnvOrDefault("STATE_CODE", "state"),
 		SpotifyClientId:     GetEnvOrDefault("SPOTIFY_CLIENT_ID", ""),
 		SpotifyClientSecret: GetEnvOrDefault("SPOTIFY_CLIENT_SECRET", ""),
+		AppName:             GetEnvOrDefault("APP_NAME", "shmoopicks"),
+		AppVersion:          GetEnvOrDefault("APP_VERSION", "0.0.0"),
+		ContactEmail:        GetEnvOrDefault("CONTACT_EMAIL", "support@shmoopicks.com"),
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/dashboard"
+	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
 
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
@@ -22,6 +23,18 @@ func Start(ctx context.Context, app app.App) {
 		slog.Error("Failed to create database", "error", err)
 		os.Exit(1)
 	}
+
+	mbClient, err := musicbrainz.NewClient(
+		app.Config().AppName,
+		app.Config().AppVersion,
+		musicbrainz.WithContactEmail(app.Config().ContactEmail),
+	)
+	if err != nil {
+		slog.Error("Failed to create MusicBrainz client", "error", err)
+		os.Exit(1)
+	}
+
+	mbService := musicbrainz.NewService(mbClient)
 
 	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
 
@@ -42,7 +55,7 @@ func Start(ctx context.Context, app app.App) {
 	appMux := httpx.NewMux(app, httpx.JwtMiddleware)
 	rootMux.Use("/app/", appMux)
 
-	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService)
+	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers

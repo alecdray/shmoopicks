@@ -8,13 +8,17 @@ import (
 )
 
 type Service struct {
-	*spotify.Client
+	client *spotify.Client
 }
 
 func NewService(client *spotify.Client) *Service {
 	return &Service{
-		Client: client,
+		client: client,
 	}
+}
+
+func (s *Service) Client() *spotify.Client {
+	return s.client
 }
 
 func (s *Service) GetRecentlySavedTracks(ctx contextx.ContextX, window time.Duration) ([]spotify.SavedTrack, error) {
@@ -23,7 +27,7 @@ func (s *Service) GetRecentlySavedTracks(ctx contextx.ContextX, window time.Dura
 	maxTime := time.Now()
 	offset := 0
 	for userTracks == nil || maxTime.After(minTime) {
-		tracks, err := s.CurrentUsersTracks(ctx, spotify.Limit(50), spotify.Offset(offset))
+		tracks, err := s.client.CurrentUsersTracks(ctx, spotify.Limit(50), spotify.Offset(offset))
 		if err != nil {
 			return nil, err
 		}
@@ -60,7 +64,7 @@ func (s *Service) GetRecentlyPlayedTracks(ctx contextx.ContextX, window time.Dur
 	minTime := time.Now().Add(-window)
 	maxTime := time.Now()
 	for recentlyPlayedTracks == nil || maxTime.After(minTime) {
-		tracks, err := s.PlayerRecentlyPlayedOpt(ctx, &spotify.RecentlyPlayedOptions{
+		tracks, err := s.client.PlayerRecentlyPlayedOpt(ctx, &spotify.RecentlyPlayedOptions{
 			Limit:         50,
 			BeforeEpochMs: maxTime.UnixMilli(),
 		})

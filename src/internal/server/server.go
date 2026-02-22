@@ -7,8 +7,7 @@ import (
 	"net/http"
 	"os"
 	"shmoopicks/src/internal/auth"
-	"shmoopicks/src/internal/core/appctx"
-	"shmoopicks/src/internal/core/config"
+	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/dashboard"
@@ -17,21 +16,21 @@ import (
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-func Start(ctx context.Context, config *config.Config) {
-	db, err := db.NewDB(config.DbPath)
+func Start(ctx context.Context, app app.App) {
+	db, err := db.NewDB(app.Config().DbPath)
 	if err != nil {
 		slog.Error("Failed to create database", "error", err)
 		os.Exit(1)
 	}
 
-	rootMux := httpx.NewMux(*config, httpx.RequestLoggingMiddleware)
+	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
 
 	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
 	spotifyAuthService := spotify.NewAuthService(
-		config.SpotifyClientId,
-		config.SpotifyClientSecret,
-		fmt.Sprintf("%s/spotify/callback", config.Host),
+		app.Config().SpotifyClientId,
+		app.Config().SpotifyClientSecret,
+		fmt.Sprintf("%s/spotify/callback", app.Config().Host),
 		spotifyauth.ScopeUserLibraryRead,
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	)
@@ -40,21 +39,21 @@ func Start(ctx context.Context, config *config.Config) {
 	rootMux.Handle("/logout", httpx.HandlerFunc(authHandler.Logout))
 	rootMux.Handle("/spotify/callback", httpx.HandlerFunc(authHandler.AuthorizeSpotify))
 
-	appMux := httpx.NewMux(*config, httpx.JwtMiddleware)
+	appMux := httpx.NewMux(app, httpx.JwtMiddleware)
 	rootMux.Use("/app/", appMux)
 
 	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers
-	rootMux.HandleFunc("/not-found", httpx.HandlerFunc(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+	rootMux.HandleFunc("/not-found", httpx.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
 	}))
 
-	addr := fmt.Sprintf(":%s", config.Port)
+	addr := fmt.Sprintf(":%s", app.Config().Port)
 	slog.Info("Starting server", "addr", addr)
 	err = http.ListenAndServe(addr, rootMux)
 	if err != nil {

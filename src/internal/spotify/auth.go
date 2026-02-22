@@ -3,8 +3,9 @@ package spotify
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"shmoopicks/src/internal/core/appctx"
+	"shmoopicks/src/internal/core/contextx"
 
 	spotify "github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
@@ -30,7 +31,7 @@ func NewAuthService(clientID, clientSecret, redirectURI string, scopes ...string
 	}
 }
 
-func (auth *AuthService) GetClientWithCallback(ctx appctx.Ctx, state string, r *http.Request) (*spotify.Client, error) {
+func (auth *AuthService) GetClientWithCallback(ctx contextx.ContextX, state string, r *http.Request) (*spotify.Client, error) {
 	token, err := auth.Token(ctx, state, r)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrFailedToGetToken, err)
@@ -42,8 +43,14 @@ func (auth *AuthService) GetClientWithCallback(ctx appctx.Ctx, state string, r *
 	return spotify.New(auth.Client(ctx, token)), nil
 }
 
-func (auth *AuthService) GetClient(ctx appctx.Ctx) (*spotify.Client, error) {
-	claims, err := ctx.GetClaims()
+func (auth *AuthService) GetClient(ctx contextx.ContextX) (*spotify.Client, error) {
+	a, err := ctx.App()
+	if err != nil {
+		err = fmt.Errorf("failed to get app: %w", err)
+		slog.DebugContext(ctx, err.Error())
+	}
+
+	claims, err := a.GetClaims()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JWT claims: %w", err)
 	}

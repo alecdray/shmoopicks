@@ -1,4 +1,4 @@
-package appctx
+package app
 
 import (
 	"errors"
@@ -54,10 +54,10 @@ func (c *Claims) Save(secret string, w http.ResponseWriter) error {
 	cookie := &http.Cookie{
 		Name:     jwtCookieName,
 		Value:    jwt,
-		Path:     "/",                   // Cookie available for entire domain
-		MaxAge:   86400,                 // 24 hours
-		HttpOnly: true,                  // Prevents JavaScript access (XSS protection)
-		Secure:   false,                 // Only send over HTTPS (set to false in development)
+		Path:     "/",                  // Cookie available for entire domain
+		MaxAge:   86400,                // 24 hours
+		HttpOnly: true,                 // Prevents JavaScript access (XSS protection)
+		Secure:   false,                // Only send over HTTPS (set to false in development)
 		SameSite: http.SameSiteLaxMode, // CSRF protection, allows same-site redirects
 	}
 	http.SetCookie(w, cookie)
@@ -70,8 +70,8 @@ func (c *Claims) Delete(w http.ResponseWriter) {
 	cookie := &http.Cookie{
 		Name:     jwtCookieName,
 		Value:    "",
-		Path:     "/",  // Must match the path used when setting the cookie
-		MaxAge:   -1,   // Delete cookie
+		Path:     "/", // Must match the path used when setting the cookie
+		MaxAge:   -1,  // Delete cookie
 		HttpOnly: true,
 		Secure:   false,
 		SameSite: http.SameSiteLaxMode,

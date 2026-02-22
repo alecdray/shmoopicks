@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"shmoopicks/src/internal/core/appctx"
+	"shmoopicks/src/internal/core/app"
+	"shmoopicks/src/internal/core/contextx"
 	"time"
 )
 
@@ -18,24 +19,31 @@ func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc
 }
 
 func JwtMiddleware(next HandlerFunc) HandlerFunc {
-	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := contextx.NewContextX(r.Context())
+		a, err := ctx.App()
+		if err != nil {
+			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get app: %w", err))
+			return
+		}
 
-		claims, err := appctx.ValidateClaimsFromRequest(r, ctx.Config().JwtSecret)
+		claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
 		if err != nil || claims.SpotifyToken == nil {
-			ctx.DeleteClaims(w)
+			a.DeleteClaims(w)
 			HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
 			return
 		}
 
 		// Add claims to request context
-		err = ctx.SetClaims(w, *claims)
+		err = a.SetClaims(w, *claims)
 		if err != nil {
 			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
 			return
 		}
 
+		r = r.WithContext(ctx.WithApp(a))
 		// Call next handler
-		next(ctx, w, r)
+		next(w, r)
 	}
 }
 
@@ -55,9 +63,9 @@ func (w *RequestLoggingMiddlewareResponseWriter) Duration() time.Duration {
 }
 
 func RequestLoggingMiddleware(next HandlerFunc) HandlerFunc {
-	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		ww := &RequestLoggingMiddlewareResponseWriter{ResponseWriter: w, statusCode: 200, startTime: time.Now()}
-		next(ctx, ww, r)
-		slog.InfoContext(ctx, "Request", "status", ww.statusCode, "method", r.Method, "path", r.URL.Path, "url", r.URL.String(), "duration", ww.Duration())
+		next(ww, r)
+		slog.InfoContext(r.Context(), "Request", "status", ww.statusCode, "method", r.Method, "path", r.URL.Path, "url", r.URL.String(), "duration", ww.Duration())
 	}
 }

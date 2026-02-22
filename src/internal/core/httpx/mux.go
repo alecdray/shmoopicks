@@ -2,36 +2,36 @@ package httpx
 
 import (
 	"net/http"
-	"shmoopicks/src/internal/core/appctx"
-	"shmoopicks/src/internal/core/config"
+	"shmoopicks/src/internal/core/app"
+	"shmoopicks/src/internal/core/contextx"
 )
 
 type Handler interface {
-	ServeHTTP(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request)
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
-type HandlerFunc func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request)
+type HandlerFunc func(w http.ResponseWriter, r *http.Request)
 
-func (f HandlerFunc) ServeHTTP(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
-	f(ctx, w, r)
+func (f HandlerFunc) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	f(w, r)
 }
 
 func WrapHandler(handler http.Handler, middlewares ...Middleware) HandlerFunc {
-	return ApplyMiddleware(func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+	return ApplyMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		handler.ServeHTTP(w, r)
 	}, middlewares...)
 }
 
 type mux struct {
 	mux        *http.ServeMux
-	config     config.Config
+	app        app.App
 	middleware []Middleware
 }
 
-func NewMux(config config.Config, middlewares ...Middleware) *mux {
+func NewMux(app app.App, middlewares ...Middleware) *mux {
 	return &mux{
 		mux:        http.NewServeMux(),
-		config:     config,
+		app:        app,
 		middleware: middlewares,
 	}
 }
@@ -39,8 +39,10 @@ func NewMux(config config.Config, middlewares ...Middleware) *mux {
 func (wm *mux) wrapHandler(handler Handler) http.HandlerFunc {
 	handlerFunc := ApplyMiddleware(handler.ServeHTTP, wm.middleware...)
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := appctx.NewCtx(r.Context(), wm.config)
-		handlerFunc(ctx, w, r)
+		ctx := contextx.NewContextX(r.Context()).
+			WithApp(wm.app)
+
+		handlerFunc(w, r.WithContext(ctx))
 	}
 }
 
@@ -59,5 +61,5 @@ func (wm *mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (wm *mux) Use(pattern string, mux *mux) {
-	wm.mux.Handle(pattern, mux)
+	wm.Handle(pattern, mux)
 }

@@ -1,7 +1,7 @@
 package spotify
 
 import (
-	"shmoopicks/src/internal/core/appctx"
+	"shmoopicks/src/internal/core/contextx"
 	"time"
 
 	spotify "github.com/zmb3/spotify/v2"
@@ -17,7 +17,7 @@ func NewService(client *spotify.Client) *Service {
 	}
 }
 
-func (s *Service) GetRecentlySavedTracks(ctx appctx.Ctx, window time.Duration) ([]spotify.SavedTrack, error) {
+func (s *Service) GetRecentlySavedTracks(ctx contextx.ContextX, window time.Duration) ([]spotify.SavedTrack, error) {
 	var userTracks []spotify.SavedTrack = nil
 	minTime := time.Now().Add(-window)
 	maxTime := time.Now()
@@ -55,7 +55,7 @@ func (s *Service) GetRecentlySavedTracks(ctx appctx.Ctx, window time.Duration) (
 	return userTracks, nil
 }
 
-func (s *Service) GetRecentlyPlayedTracks(ctx appctx.Ctx, window time.Duration) ([]spotify.RecentlyPlayedItem, error) {
+func (s *Service) GetRecentlyPlayedTracks(ctx contextx.ContextX, window time.Duration) ([]spotify.RecentlyPlayedItem, error) {
 	var recentlyPlayedTracks []spotify.RecentlyPlayedItem = nil
 	minTime := time.Now().Add(-window)
 	maxTime := time.Now()

@@ -3,7 +3,7 @@ package dashboard
 import (
 	"fmt"
 	"net/http"
-	"shmoopicks/src/internal/core/appctx"
+	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/spotify"
 	"time"
 )
@@ -18,7 +18,9 @@ func NewHttpHandler(spotifyAuth *spotify.AuthService) *HttpHandler {
 	}
 }
 
-func (h *HttpHandler) GetDashboardPage(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
+func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.NewContextX(r.Context())
+
 	client, err := h.spotifyAuth.GetClient(ctx)
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify client: %w", err)

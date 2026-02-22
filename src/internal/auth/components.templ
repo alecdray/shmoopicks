@@ -5,13 +5,21 @@ import (
 	"shmoopicks/src/internal/core/utils"
 )
 
-templ LoginPage() {
+type LoginPageProps struct {
+	authUrl string
+}
+
+templ LoginPage(props LoginPageProps) {
 	@templates.RootComponent(templates.RootProps{
 		Title: utils.CreatePageTitle("Dashboard"),
 	}) {
 		@templates.NavBarComponent(templates.NaveBarProps{
 			ActivePage: templates.HomePage,
 		})
-		Login
+		<div class="p-5">
+			<a href={ props.authUrl }>
+				<button class="btn btn-primary">Login</button>
+			</a>
+		</div>
 	}
 }

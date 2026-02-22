@@ -1,10 +1,10 @@
 package apphttp
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"shmoopicks/src/internal/core/appctx"
-	"strings"
 	"time"
 )
 
@@ -19,31 +19,20 @@ func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc
 
 func JwtMiddleware(next HandlerFunc) HandlerFunc {
 	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
-		// Get token from Authorization header
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
-			return
-		}
 
-		// Extract token (format: "Bearer <token>")
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			http.Error(w, "Invalid authorization header format", http.StatusUnauthorized)
-			return
-		}
-
-		tokenString := parts[1]
-
-		// Validate token
-		claims, err := appctx.ValidateJWT(tokenString, ctx.Config().JwtSecret)
-		if err != nil {
-			http.Error(w, "Invalid or expired token: "+err.Error(), http.StatusUnauthorized)
+		claims, err := appctx.ValidateClaimsFromRequest(r, ctx.Config().JwtSecret)
+		if err != nil || claims.SpotifyToken == nil {
+			ctx.DeleteJwt(w)
+			HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
 			return
 		}
 
 		// Add claims to request context
-		ctx.SetJwt(*claims)
+		err = ctx.SetJwt(w, *claims)
+		if err != nil {
+			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
+			return
+		}
 
 		// Call next handler
 		next(ctx, w, r)
@@ -66,7 +55,6 @@ func (w *RequestLoggingMiddlewareResponseWriter) Duration() time.Duration {
 }
 
 func RequestLoggingMiddleware(next HandlerFunc) HandlerFunc {
-	slog.Info("Initializing logging middleware")
 	return func(ctx appctx.Ctx, w http.ResponseWriter, r *http.Request) {
 		ww := &RequestLoggingMiddlewareResponseWriter{ResponseWriter: w, statusCode: 200, startTime: time.Now()}
 		next(ctx, ww, r)

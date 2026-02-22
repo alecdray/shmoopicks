@@ -11,8 +11,14 @@ require (
 )
 
 require (
+	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/mfridman/interpolate v0.0.2 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
+	github.com/zmb3/spotify/v2 v2.4.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
+	golang.org/x/oauth2 v0.0.0-20210810183815-faf39c7919d5 // indirect
 	golang.org/x/sync v0.16.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 )

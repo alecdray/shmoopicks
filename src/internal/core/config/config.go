@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -15,16 +16,26 @@ func init() {
 }
 
 type Config struct {
-	Port      string
-	DbPath    string
-	JwtSecret string
+	Port                string
+	DbPath              string
+	JwtSecret           string
+	Host                string
+	StateCode           string
+	SpotifyClientId     string
+	SpotifyClientSecret string
 }
 
 func LoadConfig() *Config {
+	port := GetEnvOrDefault("PORT", "8080")
+	host := GetEnvOrDefault("Host", fmt.Sprintf("http://127.0.0.1:%s", port))
 	return &Config{
-		Port:      GetEnvOrDefault("PORT", "8080"),
-		DbPath:    GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
-		JwtSecret: GetEnvOrDefault("JWT_SECRET", "secret"),
+		Port:                port,
+		DbPath:              GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
+		JwtSecret:           GetEnvOrDefault("JWT_SECRET", "secret"),
+		Host:                host,
+		StateCode:           GetEnvOrDefault("STATE_CODE", "state"),
+		SpotifyClientId:     GetEnvOrDefault("SPOTIFY_CLIENT_ID", ""),
+		SpotifyClientSecret: GetEnvOrDefault("SPOTIFY_CLIENT_SECRET", ""),
 	}
 }
 

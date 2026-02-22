@@ -12,6 +12,7 @@ import (
 	"shmoopicks/src/internal/core/config"
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/dashboard"
+	"shmoopicks/src/internal/spotify"
 )
 
 func Start(ctx context.Context, config *config.Config) {
@@ -25,8 +26,15 @@ func Start(ctx context.Context, config *config.Config) {
 
 	rootMux.Handle("/static/", apphttp.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
-	authHandler := auth.NewHttpHandler(db)
+	spotifyAuthService := spotify.NewAuthService(
+		config.SpotifyClientId,
+		config.SpotifyClientSecret,
+		fmt.Sprintf("%s/spotify/callback", config.Host),
+	)
+	authHandler := auth.NewHttpHandler(db, spotifyAuthService)
 	rootMux.Handle("/{$}", apphttp.HandlerFunc(authHandler.GetLoginPage))
+	rootMux.Handle("/logout", apphttp.HandlerFunc(authHandler.Logout))
+	rootMux.Handle("/spotify/callback", apphttp.HandlerFunc(authHandler.AuthorizeSpotify))
 
 	appMux := apphttp.NewMux(*config, apphttp.JwtMiddleware)
 	rootMux.Use("/app/", appMux)

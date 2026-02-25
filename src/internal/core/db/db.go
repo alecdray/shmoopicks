@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"shmoopicks/src/internal/core/db/sqlc"
 	"time"
 
 	"github.com/pressly/goose/v3"
@@ -13,32 +14,48 @@ import (
 const migrationsDir = "db/migrations"
 
 type DB struct {
-	*sql.DB
+	sql     *sql.DB
+	queries *sqlc.Queries
 }
 
 func NewDB(filepath string) (*DB, error) {
-	db, err := sql.Open("sqlite3", filepath)
+	sqlDb, err := sql.Open("sqlite3", filepath)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := db.Ping(); err != nil {
+	if err := sqlDb.Ping(); err != nil {
 		return nil, err
 	}
 
-	if err := runMigrations(db); err != nil {
+	sqlDb.SetMaxOpenConns(25)
+	sqlDb.SetMaxIdleConns(5)
+	sqlDb.SetConnMaxLifetime(5 * time.Minute)
+
+	queries := sqlc.New(sqlDb)
+	db := &DB{sql: sqlDb, queries: queries}
+
+	if err := db.runMigrations(); err != nil {
 		return nil, err
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	return &DB{db}, nil
+	return db, nil
 }
 
-func runMigrations(db *sql.DB) error {
-	err := goose.Up(db, migrationsDir)
+func (db *DB) Sql() *sql.DB {
+	return db.sql
+}
+
+func (db *DB) Queries() *sqlc.Queries {
+	return db.queries
+}
+
+func (db *DB) Close() error {
+	return db.sql.Close()
+}
+
+func (db *DB) runMigrations() error {
+	err := goose.Up(db.sql, migrationsDir)
 
 	if errors.Is(err, goose.ErrNoMigrationFiles) {
 		// Do nothing, no migrations found

@@ -1,0 +1,79 @@
+CREATE TABLE goose_db_version (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		version_id INTEGER NOT NULL,
+		is_applied INTEGER NOT NULL,
+		tstamp TIMESTAMP DEFAULT (datetime('now'))
+	);
+CREATE TABLE sqlite_sequence(name,seq);
+CREATE TABLE users (
+    id text primary key,
+    spotify_id text not null unique,
+    created_at datetime not null default current_timestamp,
+    deleted_at datetime
+);
+CREATE TABLE artists (
+    id text primary key,
+    spotify_id text not null unique,
+    name text not null,
+    created_at datetime not null default current_timestamp,
+    deleted_at datetime
+);
+CREATE TABLE albums (
+    id text primary key,
+    spotify_id text not null unique,
+    title text not null,
+    created_at datetime not null default current_timestamp,
+    deleted_at datetime
+);
+CREATE TABLE tracks (
+    id text primary key,
+    spotify_id text not null unique,
+    title text not null,
+    album_id text not null references albums(id) on delete cascade,
+    created_at datetime not null default current_timestamp,
+    deleted_at datetime
+);
+CREATE TABLE album_artists (
+    id text primary key,
+    album_id text not null references albums(id) on delete cascade,
+    artist_id text not null references artists(id) on delete cascade,
+    unique(album_id, artist_id)
+);
+CREATE TABLE album_tracks (
+    id text primary key,
+    album_id text not null references albums(id) on delete cascade,
+    track_id text not null references tracks(id) on delete cascade,
+    unique(album_id, track_id)
+);
+CREATE TABLE releases (
+    id text primary key,
+    album_id text not null references albums(id) on delete cascade,
+    format text not null check(format in ('digital', 'vinyl', 'cd', 'cassette')),
+    description text not null,
+    created_at datetime not null default current_timestamp,
+    deleted_at datetime
+);
+CREATE TABLE user_releases (
+    id text primary key,
+    user_id text not null references users(id) on delete cascade,
+    release_id text not null references releases(id) on delete cascade,
+    added_at datetime not null default current_timestamp,
+    deleted_at datetime,
+    unique(user_id, release_id)
+);
+CREATE TABLE user_tracks (
+    id text primary key,
+    user_id text not null references users(id) on delete cascade,
+    track_id text not null references tracks(id) on delete cascade,
+    added_at datetime not null default current_timestamp,
+    deleted_at datetime,
+    unique(user_id, track_id)
+);
+CREATE TABLE user_artists (
+    id text primary key,
+    user_id text not null references users(id) on delete cascade,
+    artist_id text not null references artists(id) on delete cascade,
+    added_at datetime not null default current_timestamp,
+    deleted_at datetime,
+    unique(user_id, artist_id)
+);

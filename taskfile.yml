@@ -55,3 +55,8 @@ tasks:
       - dev/tailwind
       - dev/templ
       - dev/sync-assets
+  db/up:
+    cmds:
+      - goose up
+      - sqlite3 $GOOSE_DBSTRING .schema > ./db/schema.sql
+      - sqlc generate

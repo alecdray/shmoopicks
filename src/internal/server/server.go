@@ -23,6 +23,7 @@ func Start(ctx context.Context, app app.App) {
 		slog.Error("Failed to create database", "error", err)
 		os.Exit(1)
 	}
+	defer db.Close()
 
 	mbClient, err := musicbrainz.NewClient(
 		app.Config().AppName,

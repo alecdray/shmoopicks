@@ -37,7 +37,7 @@ tasks:
         --build.exclude_dir "node_modules"
         --build.include_ext "go"
         --build.stop_on_error false
-        --misc.clean_on_exit true
+        --misc.clean_on_exit false
   dev/tailwind:
     cmds:
       - npx --yes @tailwindcss/cli -i ./static/src/main.css -o ./static/public/main.css --watch

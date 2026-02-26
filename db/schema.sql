@@ -49,9 +49,9 @@ CREATE TABLE releases (
     id text primary key,
     album_id text not null references albums(id) on delete cascade,
     format text not null check(format in ('digital', 'vinyl', 'cd', 'cassette')),
-    description text not null,
     created_at datetime not null default current_timestamp,
-    deleted_at datetime
+    deleted_at datetime,
+    unique(album_id, format)
 );
 CREATE TABLE user_releases (
     id text primary key,
@@ -76,4 +76,12 @@ CREATE TABLE user_artists (
     added_at datetime not null default current_timestamp,
     deleted_at datetime,
     unique(user_id, artist_id)
+);
+CREATE TABLE feeds (
+    id text primary key,
+    user_id text not null references users(id) on delete cascade,
+    kind text not null check(kind in ('spotify')),
+    created_at datetime not null default current_timestamp,
+    last_synced_at datetime,
+    unique(user_id, kind)
 );

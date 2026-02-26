@@ -6,3 +6,6 @@ sql:
     gen:
       go:
         out: "src/internal/core/db/sqlc"
+        overrides:
+          - column: "feeds.kind"
+            go_type: "shmoopicks/src/internal/core/db/models.FeedKind"

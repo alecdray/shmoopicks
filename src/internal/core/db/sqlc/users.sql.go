@@ -9,8 +9,9 @@ import (
 	"context"
 )
 
-const createUser = `-- name: CreateUser :exec
+const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, spotify_id) VALUES (?, ?)
+RETURNING id, spotify_id, created_at, deleted_at
 `
 
 type CreateUserParams struct {
@@ -18,26 +19,16 @@ type CreateUserParams struct {
 	SpotifyID string
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, createUser, arg.ID, arg.SpotifyID)
-	return err
-}
-
-const getOrCreateUser = `-- name: GetOrCreateUser :exec
-INSERT INTO users (id, spotify_id) VALUES (?, ?)
-ON CONFLICT (spotify_id)
-DO UPDATE SET spotify_id = spotify_id
-RETURNING id, spotify_id, created_at, deleted_at
-`
-
-type GetOrCreateUserParams struct {
-	ID        string
-	SpotifyID string
-}
-
-func (q *Queries) GetOrCreateUser(ctx context.Context, arg GetOrCreateUserParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateUser, arg.ID, arg.SpotifyID)
-	return err
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.ID, arg.SpotifyID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.SpotifyID,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const getUser = `-- name: GetUser :one
@@ -62,6 +53,30 @@ SELECT id, spotify_id, created_at, deleted_at FROM users WHERE spotify_id = ?
 
 func (q *Queries) GetUserBySpotifyId(ctx context.Context, spotifyID string) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserBySpotifyId, spotifyID)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.SpotifyID,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const upsertSpotifyUser = `-- name: UpsertSpotifyUser :one
+INSERT INTO users (id, spotify_id) VALUES (?, ?)
+ON CONFLICT (spotify_id)
+DO UPDATE SET spotify_id = EXCLUDED.spotify_id
+RETURNING id, spotify_id, created_at, deleted_at
+`
+
+type UpsertSpotifyUserParams struct {
+	ID        string
+	SpotifyID string
+}
+
+func (q *Queries) UpsertSpotifyUser(ctx context.Context, arg UpsertSpotifyUserParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, upsertSpotifyUser, arg.ID, arg.SpotifyID)
 	var i User
 	err := row.Scan(
 		&i.ID,

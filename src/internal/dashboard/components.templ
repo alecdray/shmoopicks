@@ -1,15 +1,16 @@
 package dashboard
 
 import (
-	"fmt"
-	spotify "github.com/zmb3/spotify/v2"
 	"shmoopicks/src/internal/core/templates"
+	"shmoopicks/src/internal/feed"
 )
 
 type DashboardPageProps struct {
-	Title                string
-	Tracks               []spotify.SavedTrack
-	RecentlyPlayedTracks map[string]struct{}
+	Feeds []feed.FeedDTO
+}
+
+templ unsyncedToolTipContent() {
+	<span class="text-danger">Unsyned</span>
 }
 
 templ DashboardPage(props DashboardPageProps) {
@@ -22,13 +23,20 @@ templ DashboardPage(props DashboardPageProps) {
 		})
 		<div class="p-5">
 			<h1>Welcome to shmoopicks!</h1>
+			<h2>Your Feeds</h2>
 			<ul>
-				for _, track := range props.Tracks {
+				for _, feed := range props.Feeds {
 					<li>
-						if _, ok := props.RecentlyPlayedTracks[string(track.ID)]; ok {
-							<span class="badge badge-success">Recently Played</span>
+						{ feed.Kind }
+						if feed.IsUnsyned() {
+							@templates.ToolTip(templates.ToolTipProps{
+								Content: unsyncedToolTipContent(),
+							}) {
+								@templates.WarningIcon(templates.IconProps{
+									Style: templates.IconStyleOutline,
+								})
+							}
 						}
-						{ fmt.Sprintf("%s by %s | %s", track.Name, track.Artists[0].Name, track.AddedAt) }
 					</li>
 				}
 			</ul>

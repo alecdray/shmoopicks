@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/contextx"
+	"shmoopicks/src/internal/spotify"
 	"time"
 )
 
@@ -18,32 +19,45 @@ func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc
 	return handler
 }
 
-func JwtMiddleware(next HandlerFunc) HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := contextx.NewContextX(r.Context())
-		a, err := ctx.App()
-		if err != nil {
-			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get app: %w", err))
-			return
-		}
+func JwtMiddleware(spotifyService *spotify.Service) Middleware {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			ctx := contextx.NewContextX(r.Context())
+			a, err := ctx.App()
+			if err != nil {
+				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get app: %w", err))
+				return
+			}
 
-		claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
-		if err != nil || claims.SpotifyToken == nil {
-			a.DeleteClaims(w)
-			HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
-			return
-		}
+			claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
+			if err != nil || claims.SpotifyToken == nil {
+				a.DeleteClaims(w)
+				HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
+				return
+			}
 
-		// Add claims to request context
-		err = a.SetClaims(w, claims)
-		if err != nil {
-			HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
-			return
-		}
+			// Add claims to request context
+			err = a.SetClaims(w, claims)
+			if err != nil {
+				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
+				return
+			}
+			ctx = ctx.WithApp(a)
 
-		r = r.WithContext(ctx.WithApp(a))
-		// Call next handler
-		next(w, r)
+			if claims.SpotifyToken != nil {
+				user, err := spotifyService.GetUser(ctx)
+				if err != nil {
+					HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
+					return
+				}
+
+				ctx = ctx.WithUserId(user.ID)
+			}
+
+			r = r.WithContext(ctx)
+			// Call next handler
+			next(w, r)
+		}
 	}
 }
 

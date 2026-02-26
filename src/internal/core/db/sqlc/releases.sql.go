@@ -28,7 +28,7 @@ const getOrCreateRelease = `-- name: GetOrCreateRelease :exec
 INSERT INTO releases (id, album_id, format) VALUES (?, ?, ?)
 ON CONFLICT (album_id, format)
 DO UPDATE SET album_id = album_id
-RETURNING id, album_id, format, description, created_at, deleted_at
+RETURNING id, album_id, format, created_at, deleted_at
 `
 
 type GetOrCreateReleaseParams struct {
@@ -43,7 +43,7 @@ func (q *Queries) GetOrCreateRelease(ctx context.Context, arg GetOrCreateRelease
 }
 
 const getRelease = `-- name: GetRelease :one
-SELECT id, album_id, format, description, created_at, deleted_at FROM releases WHERE id = ?
+SELECT id, album_id, format, created_at, deleted_at FROM releases WHERE id = ?
 `
 
 func (q *Queries) GetRelease(ctx context.Context, id string) (Release, error) {
@@ -53,7 +53,6 @@ func (q *Queries) GetRelease(ctx context.Context, id string) (Release, error) {
 		&i.ID,
 		&i.AlbumID,
 		&i.Format,
-		&i.Description,
 		&i.CreatedAt,
 		&i.DeletedAt,
 	)
@@ -61,7 +60,7 @@ func (q *Queries) GetRelease(ctx context.Context, id string) (Release, error) {
 }
 
 const getReleases = `-- name: GetReleases :many
-SELECT id, album_id, format, description, created_at, deleted_at FROM releases WHERE album_id = ?
+SELECT id, album_id, format, created_at, deleted_at FROM releases WHERE album_id = ?
 `
 
 func (q *Queries) GetReleases(ctx context.Context, albumID string) ([]Release, error) {
@@ -77,7 +76,6 @@ func (q *Queries) GetReleases(ctx context.Context, albumID string) ([]Release, e
 			&i.ID,
 			&i.AlbumID,
 			&i.Format,
-			&i.Description,
 			&i.CreatedAt,
 			&i.DeletedAt,
 		); err != nil {

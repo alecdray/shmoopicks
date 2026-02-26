@@ -7,6 +7,8 @@ package sqlc
 import (
 	"database/sql"
 	"time"
+
+	"shmoopicks/src/internal/core/db/models"
 )
 
 type Album struct {
@@ -37,6 +39,14 @@ type Artist struct {
 	DeletedAt sql.NullTime
 }
 
+type Feed struct {
+	ID           string
+	UserID       string
+	Kind         models.FeedKind
+	CreatedAt    time.Time
+	LastSyncedAt sql.NullTime
+}
+
 type GooseDbVersion struct {
 	ID        int64
 	VersionID int64
@@ -45,12 +55,11 @@ type GooseDbVersion struct {
 }
 
 type Release struct {
-	ID          string
-	AlbumID     string
-	Format      string
-	Description string
-	CreatedAt   time.Time
-	DeletedAt   sql.NullTime
+	ID        string
+	AlbumID   string
+	Format    string
+	CreatedAt time.Time
+	DeletedAt sql.NullTime
 }
 
 type SqliteSequence struct {

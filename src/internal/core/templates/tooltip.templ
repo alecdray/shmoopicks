@@ -1,0 +1,14 @@
+package templates
+
+type ToolTipProps struct {
+	Content templ.Component
+}
+
+templ ToolTip(props ToolTipProps) {
+	<div class="tooltip">
+		<div class="tooltip-content">
+			@props.Content
+		</div>
+		{ children... }
+	</div>
+}

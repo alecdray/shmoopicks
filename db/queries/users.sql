@@ -1,10 +1,11 @@
--- name: CreateUser :exec
-INSERT INTO users (id, spotify_id) VALUES (?, ?);
+-- name: CreateUser :one
+INSERT INTO users (id, spotify_id) VALUES (?, ?)
+RETURNING *;
 
--- name: GetOrCreateUser :exec
+-- name: UpsertSpotifyUser :one
 INSERT INTO users (id, spotify_id) VALUES (?, ?)
 ON CONFLICT (spotify_id)
-DO UPDATE SET spotify_id = spotify_id
+DO UPDATE SET spotify_id = EXCLUDED.spotify_id
 RETURNING *;
 
 -- name: GetUser :one

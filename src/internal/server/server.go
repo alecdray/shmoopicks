@@ -11,8 +11,10 @@ import (
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/dashboard"
+	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
+	"shmoopicks/src/internal/user"
 
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
@@ -35,11 +37,9 @@ func Start(ctx context.Context, app app.App) {
 		os.Exit(1)
 	}
 
+	userService := user.NewService(db)
+
 	mbService := musicbrainz.NewService(mbClient)
-
-	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
-
-	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
 	spotifyAuthService := spotify.NewAuthService(
 		app.Config().SpotifyClientId,
@@ -48,15 +48,24 @@ func Start(ctx context.Context, app app.App) {
 		spotifyauth.ScopeUserLibraryRead,
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	)
-	authHandler := auth.NewHttpHandler(db, spotifyAuthService)
+
+	spotifyService := spotify.NewService()
+
+	feedService := feed.NewService(db, spotifyService)
+
+	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
+
+	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
+
+	authHandler := auth.NewHttpHandler(db, spotifyAuthService, userService, feedService)
 	rootMux.Handle("/{$}", httpx.HandlerFunc(authHandler.GetLoginPage))
 	rootMux.Handle("/logout", httpx.HandlerFunc(authHandler.Logout))
 	rootMux.Handle("/spotify/callback", httpx.HandlerFunc(authHandler.AuthorizeSpotify))
 
-	appMux := httpx.NewMux(app, httpx.JwtMiddleware)
+	appMux := httpx.NewMux(app, httpx.JwtMiddleware(spotifyService))
 	rootMux.Use("/app/", appMux)
 
-	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService)
+	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers

@@ -7,19 +7,26 @@ import (
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/db"
+	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/httpx"
+	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/spotify"
+	"shmoopicks/src/internal/user"
 )
 
 type HttpHandler struct {
 	db          *db.DB
 	spotifyAuth *spotify.AuthService
+	userService *user.Service
+	feedService *feed.Service
 }
 
-func NewHttpHandler(db *db.DB, spotifyAuth *spotify.AuthService) *HttpHandler {
+func NewHttpHandler(db *db.DB, spotifyAuth *spotify.AuthService, userService *user.Service, feedService *feed.Service) *HttpHandler {
 	return &HttpHandler{
 		db:          db,
 		spotifyAuth: spotifyAuth,
+		userService: userService,
+		feedService: feedService,
 	}
 }
 
@@ -71,7 +78,7 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := h.spotifyAuth.GetClientWithCallback(ctx, a.Config().StateCode, r)
+	client, err := h.spotifyAuth.GetClientFromCallback(ctx, a.Config().StateCode, r)
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify client: %w", err)
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
@@ -81,6 +88,26 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 	token, err := client.Token()
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify token: %w", err)
+		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	spotifyUser, err := client.CurrentUser(ctx)
+	if err != nil {
+		err = fmt.Errorf("failed to get spotify user: %w", err)
+		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+	_, err = h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID)
+	if err != nil {
+		err = fmt.Errorf("failed to upsert spotify user: %w", err)
+		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, err = h.feedService.UpsertFeed(ctx, spotifyUser.ID, models.FeedKindSpotify)
+	if err != nil {
+		err = fmt.Errorf("failed to upsert feed: %w", err)
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
 		return
 	}

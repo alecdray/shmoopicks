@@ -3,7 +3,6 @@ package spotify
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"shmoopicks/src/internal/core/contextx"
 
@@ -31,7 +30,7 @@ func NewAuthService(clientID, clientSecret, redirectURI string, scopes ...string
 	}
 }
 
-func (auth *AuthService) GetClientWithCallback(ctx contextx.ContextX, state string, r *http.Request) (*spotify.Client, error) {
+func (auth *AuthService) GetClientFromCallback(ctx contextx.ContextX, state string, r *http.Request) (*spotify.Client, error) {
 	token, err := auth.Token(ctx, state, r)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrFailedToGetToken, err)
@@ -41,19 +40,4 @@ func (auth *AuthService) GetClientWithCallback(ctx contextx.ContextX, state stri
 	}
 
 	return spotify.New(auth.Client(ctx, token)), nil
-}
-
-func (auth *AuthService) GetClient(ctx contextx.ContextX) (*spotify.Client, error) {
-	a, err := ctx.App()
-	if err != nil {
-		err = fmt.Errorf("failed to get app: %w", err)
-		slog.DebugContext(ctx, err.Error())
-	}
-
-	claims := a.Claims()
-	if claims == nil || claims.SpotifyToken == nil {
-		return nil, fmt.Errorf("spotify token not found in JWT claims")
-	}
-
-	return spotify.New(auth.Client(ctx, claims.SpotifyToken)), nil
 }

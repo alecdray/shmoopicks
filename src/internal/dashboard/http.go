@@ -43,16 +43,14 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	for _, feed := range feeds {
-		if feed.Kind == models.FeedKindSpotify && !feed.IsSynced() {
-			syncedFeed, err := h.feedService.SyncSpotifyFeed(ctx, feed)
-			if err != nil {
-				slog.Error("failed to sync spotify feed", "error", err)
-			}
-
-			if syncedFeed != nil {
-				feed = *syncedFeed
-			}
+	for _, f := range feeds {
+		if f.Kind == models.FeedKindSpotify && !f.IsSynced() {
+			go func(feed feed.FeedDTO) {
+				_, err := h.feedService.SyncSpotifyFeed(ctx, feed)
+				if err != nil {
+					slog.Error("failed to sync spotify feed", "error", err)
+				}
+			}(f)
 		}
 	}
 
@@ -63,6 +61,8 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	library.Albums.SortByDate(false)
+
 	dashboardPage := DashboardPage(DashboardPageProps{
 		Library: library,
 		Feeds:   feeds,
@@ -70,7 +70,7 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	dashboardPage.Render(r.Context(), w)
 }
 
-func (h *HttpHandler) GetAlbumsTableBody(w http.ResponseWriter, r *http.Request) {
+func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.NewContextX(r.Context())
 
 	userId, err := ctx.UserId()
@@ -108,7 +108,7 @@ func (h *HttpHandler) GetAlbumsTableBody(w http.ResponseWriter, r *http.Request)
 		albums.SortByDate(ascending)
 	}
 
-	component := albumsTableBody(albums)
+	component := AlbumsTable(albums, sortBy, dir)
 	component.Render(r.Context(), w)
 }
 

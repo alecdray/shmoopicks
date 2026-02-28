@@ -22,35 +22,6 @@ func hasIssues(feeds []feed.FeedDTO) bool {
 	return false
 }
 
-templ unsyncedToolTipContent() {
-	<span class="text-danger">Unsyned</span>
-}
-
-templ feedStatusTooltipContent(f feed.FeedDTO) {
-	<div class="text-sm">
-		<div class="font-semibold">{ string(f.Kind) }</div>
-		if f.IsUnsyned() {
-			<div class="text-warning">Never synced</div>
-		} else if f.IsSyncing() {
-			<div class="text-info">Syncing now...</div>
-		} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
-			<div class="text-error">Sync failed</div>
-			if f.LastSyncCompletedAt != nil {
-				<div class="text-xs opacity-70">{ f.LastSyncCompletedAt.Format("Jan 2, 3:04 PM") }</div>
-			}
-		} else if f.IsSynced() {
-			if f.IsStale() {
-				<div class="text-warning">Synced (stale)</div>
-			} else {
-				<div class="text-success">Synced</div>
-			}
-			if f.LastSyncCompletedAt != nil {
-				<div class="text-xs opacity-70">{ f.LastSyncCompletedAt.Format("Jan 2, 3:04 PM") }</div>
-			}
-		}
-	</div>
-}
-
 templ feedsDropdownButton(feeds []feed.FeedDTO, oob bool) {
 	<div
 		id="feeds-dropdown-button"
@@ -161,17 +132,8 @@ templ releaseFormatBadge(release library.ReleaseDTO) {
 	</div>
 }
 
-func hasFormat(releases []library.ReleaseDTO, format models.ReleaseFormat) *library.ReleaseDTO {
-	for _, r := range releases {
-		if r.Format == format {
-			return &r
-		}
-	}
-	return nil
-}
-
-templ formatIcon(releases []library.ReleaseDTO, format models.ReleaseFormat) {
-	if release := hasFormat(releases, format); release != nil && release.AddedAt != nil {
+templ formatIcon(releases library.ReleaseDTOs, format models.ReleaseFormat) {
+	if release := releases.FindFormat(format); release != nil && release.AddedAt != nil {
 		<div class="tooltip tooltip-top" data-tip={ string(format) + " - " + release.AddedAt.Format("Jan 2, 2006") }>
 			<div class="opacity-100">
 				@releaseFormatIcon(format)
@@ -187,7 +149,7 @@ templ formatIcon(releases []library.ReleaseDTO, format models.ReleaseFormat) {
 }
 
 templ albumRow(album library.AlbumDTO) {
-	<tr class="hover">
+	<tr class="hover:bg-base-300 transition-colors duration-150">
 		<td class="font-medium">{ album.Title }</td>
 		<td>
 			if len(album.Artists) > 0 {
@@ -227,8 +189,31 @@ templ albumsTableBody(albums []library.AlbumDTO) {
 	}
 }
 
-templ AlbumsTable(albums []library.AlbumDTO) {
-	<div class="w-full px-6 py-6">
+templ albumsTableSortableHeader(colName, sortedBy, sortedDir string) {
+	<th
+		class="cursor-pointer hover:bg-base-200"
+		hx-target="#album-table"
+		hx-swap="outerHTML"
+		class="inline-block mr-1"
+		if sortedBy == colName && sortedDir == "desc" {
+			hx-get={ fmt.Sprintf("/app/dashboard/albums-table?sortBy=%s&dir=asc", colName) }
+		} else {
+			hx-get={ fmt.Sprintf("/app/dashboard/albums-table?sortBy=%s&dir=desc", colName) }
+		}
+	>
+		{ children... }
+		<span>
+			if sortedBy == colName && sortedDir == "desc" {
+				↑
+			} else {
+				↓
+			}
+		</span>
+	</th>
+}
+
+templ AlbumsTable(albums []library.AlbumDTO, sortedBy string, sortedDir string) {
+	<div id="album-table" class="w-full px-6 py-6">
 		<div class="w-full">
 			<table class="table table-zebra w-full table-fixed">
 				<colgroup>
@@ -239,52 +224,16 @@ templ AlbumsTable(albums []library.AlbumDTO) {
 				</colgroup>
 				<thead>
 					<tr>
-						<th class="cursor-pointer hover:bg-base-200">
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=album&dir=asc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block mr-1"
-							>↑</span>
+						@albumsTableSortableHeader("album", sortedBy, sortedDir) {
 							<span>Album</span>
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=album&dir=desc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block ml-1"
-							>↓</span>
-						</th>
-						<th class="cursor-pointer hover:bg-base-200">
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=artist&dir=asc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block mr-1"
-							>↑</span>
+						}
+						@albumsTableSortableHeader("artist", sortedBy, sortedDir) {
 							<span>Artists</span>
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=artist&dir=desc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block ml-1"
-							>↓</span>
-						</th>
+						}
 						<th>Formats</th>
-						<th class="cursor-pointer hover:bg-base-200">
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=date&dir=asc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block mr-1"
-							>↑</span>
+						@albumsTableSortableHeader("date", sortedBy, sortedDir) {
 							<span>Date Added</span>
-							<span
-								hx-get="/app/dashboard/albums-table-body?sortBy=date&dir=desc"
-								hx-target="#albums-tbody"
-								hx-swap="innerHTML"
-								class="inline-block ml-1"
-							>↓</span>
-						</th>
+						}
 					</tr>
 				</thead>
 				<tbody id="albums-tbody">
@@ -357,7 +306,7 @@ templ DashboardPage(props DashboardPageProps) {
 			@LibraryStats(props.Library)
 			<div class="flex-1 overflow-y-auto">
 				if props.Library != nil {
-					@AlbumsTable(props.Library.Albums)
+					@AlbumsTable(props.Library.Albums, "date", "desc")
 				}
 			</div>
 		</div>

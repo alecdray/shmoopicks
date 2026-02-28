@@ -47,6 +47,15 @@ func (releases ReleaseDTOs) OldestAddedAtDate() *time.Time {
 	return oldest
 }
 
+func (releases ReleaseDTOs) FindFormat(format models.ReleaseFormat) *ReleaseDTO {
+	for _, r := range releases {
+		if r.Format == format {
+			return &r
+		}
+	}
+	return nil
+}
+
 type TrackDTO struct {
 	ID        string
 	SpotifyID string

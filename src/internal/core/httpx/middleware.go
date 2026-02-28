@@ -31,10 +31,14 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 			}
 
 			claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
-			if err != nil || claims.SpotifyToken == nil {
+			if err != nil || (claims.SpotifyToken == nil && claims.UserID == nil) {
 				a.DeleteClaims(w)
 				HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
 				return
+			}
+
+			if claims.UserID != nil {
+				ctx = ctx.WithUserId(*claims.UserID)
 			}
 
 			// Add claims to request context
@@ -51,6 +55,14 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 				return
 			}
 			ctx = ctx.WithUserId(user.ID)
+
+			claims.UserID = &user.ID
+			err = a.SetClaims(w, claims)
+			if err != nil {
+				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
+				return
+			}
+			ctx = ctx.WithApp(a)
 
 			r = r.WithContext(ctx)
 			// Call next handler

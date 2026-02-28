@@ -7,7 +7,8 @@
 ## Backlog
 
 - [ ] Listening history
-- [ ] Albums ratings
+- [ ] Ranking and review system
+- [ ] Tagging system
 - [ ] Ranklists - create ranked lists of albums
 - [ ] Shelves - organize albums into custom categories
 - [ ] Metrics - library, listening history, albums ratings, ranklists, shelves

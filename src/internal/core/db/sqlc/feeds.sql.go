@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 
 	"shmoopicks/src/internal/core/db/models"
 )
@@ -14,7 +15,7 @@ import (
 const createFeed = `-- name: CreateFeed :one
 insert into feeds (user_id, kind)
 values (?, ?)
-returning id, user_id, kind, created_at, last_synced_at
+returning id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status
 `
 
 type CreateFeedParams struct {
@@ -30,13 +31,15 @@ func (q *Queries) CreateFeed(ctx context.Context, arg CreateFeedParams) (Feed, e
 		&i.UserID,
 		&i.Kind,
 		&i.CreatedAt,
-		&i.LastSyncedAt,
+		&i.LastSyncCompletedAt,
+		&i.LastSyncStartedAt,
+		&i.LastSyncStatus,
 	)
 	return i, err
 }
 
 const getFeedsByUserId = `-- name: GetFeedsByUserId :many
-select id, user_id, kind, created_at, last_synced_at from feeds where user_id = ?
+select id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status from feeds where user_id = ?
 `
 
 func (q *Queries) GetFeedsByUserId(ctx context.Context, userID string) ([]Feed, error) {
@@ -53,7 +56,9 @@ func (q *Queries) GetFeedsByUserId(ctx context.Context, userID string) ([]Feed, 
 			&i.UserID,
 			&i.Kind,
 			&i.CreatedAt,
-			&i.LastSyncedAt,
+			&i.LastSyncCompletedAt,
+			&i.LastSyncStartedAt,
+			&i.LastSyncStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -69,7 +74,7 @@ func (q *Queries) GetFeedsByUserId(ctx context.Context, userID string) ([]Feed, 
 }
 
 const getStaleFeedsBatch = `-- name: GetStaleFeedsBatch :many
-SELECT id, user_id, kind, created_at, last_synced_at FROM feeds
+SELECT id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status FROM feeds
 WHERE last_synced_at < datetime('now', ?)
 OR last_synced_at IS NULL
 ORDER BY last_synced_at ASC
@@ -90,7 +95,9 @@ func (q *Queries) GetStaleFeedsBatch(ctx context.Context, datetime interface{}) 
 			&i.UserID,
 			&i.Kind,
 			&i.CreatedAt,
-			&i.LastSyncedAt,
+			&i.LastSyncCompletedAt,
+			&i.LastSyncStartedAt,
+			&i.LastSyncStatus,
 		); err != nil {
 			return nil, err
 		}
@@ -105,13 +112,49 @@ func (q *Queries) GetStaleFeedsBatch(ctx context.Context, datetime interface{}) 
 	return items, nil
 }
 
+const updateFeed = `-- name: UpdateFeed :one
+UPDATE feeds
+SET last_sync_completed_at = COALESCE(?, last_sync_completed_at),
+    last_sync_started_at = COALESCE(?, last_sync_started_at),
+    last_sync_status = COALESCE(?, last_sync_status)
+WHERE id = ?
+RETURNING id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status
+`
+
+type UpdateFeedParams struct {
+	LastSyncCompletedAt sql.NullTime
+	LastSyncStartedAt   sql.NullTime
+	LastSyncStatus      models.FeedSyncStatus
+	ID                  string
+}
+
+func (q *Queries) UpdateFeed(ctx context.Context, arg UpdateFeedParams) (Feed, error) {
+	row := q.db.QueryRowContext(ctx, updateFeed,
+		arg.LastSyncCompletedAt,
+		arg.LastSyncStartedAt,
+		arg.LastSyncStatus,
+		arg.ID,
+	)
+	var i Feed
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Kind,
+		&i.CreatedAt,
+		&i.LastSyncCompletedAt,
+		&i.LastSyncStartedAt,
+		&i.LastSyncStatus,
+	)
+	return i, err
+}
+
 const upsertFeed = `-- name: UpsertFeed :one
 INSERT INTO feeds (id, user_id, kind)
 VALUES (?, ?, ?)
 ON CONFLICT (user_id, kind) DO UPDATE SET
     user_id = excluded.user_id,
     kind = excluded.kind
-RETURNING id, user_id, kind, created_at, last_synced_at
+RETURNING id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status
 `
 
 type UpsertFeedParams struct {
@@ -128,7 +171,9 @@ func (q *Queries) UpsertFeed(ctx context.Context, arg UpsertFeedParams) (Feed, e
 		&i.UserID,
 		&i.Kind,
 		&i.CreatedAt,
-		&i.LastSyncedAt,
+		&i.LastSyncCompletedAt,
+		&i.LastSyncStartedAt,
+		&i.LastSyncStatus,
 	)
 	return i, err
 }

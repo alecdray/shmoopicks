@@ -1,7 +1,7 @@
 -- name: CreateArtist :exec
 INSERT INTO artists (id, spotify_id, name) VALUES (?, ?, ?);
 
--- name: GetOrCreateArtist :exec
+-- name: GetOrCreateArtist :one
 INSERT INTO artists (id, spotify_id, name) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
 DO UPDATE SET spotify_id = spotify_id

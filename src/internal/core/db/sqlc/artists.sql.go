@@ -58,7 +58,7 @@ func (q *Queries) GetArtistBySpotifyId(ctx context.Context, spotifyID string) (A
 	return i, err
 }
 
-const getOrCreateArtist = `-- name: GetOrCreateArtist :exec
+const getOrCreateArtist = `-- name: GetOrCreateArtist :one
 INSERT INTO artists (id, spotify_id, name) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
 DO UPDATE SET spotify_id = spotify_id
@@ -71,7 +71,15 @@ type GetOrCreateArtistParams struct {
 	Name      string
 }
 
-func (q *Queries) GetOrCreateArtist(ctx context.Context, arg GetOrCreateArtistParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateArtist, arg.ID, arg.SpotifyID, arg.Name)
-	return err
+func (q *Queries) GetOrCreateArtist(ctx context.Context, arg GetOrCreateArtistParams) (Artist, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateArtist, arg.ID, arg.SpotifyID, arg.Name)
+	var i Artist
+	err := row.Scan(
+		&i.ID,
+		&i.SpotifyID,
+		&i.Name,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

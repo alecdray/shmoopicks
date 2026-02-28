@@ -7,6 +7,8 @@ package sqlc
 
 import (
 	"context"
+
+	"shmoopicks/src/internal/core/db/models"
 )
 
 const createRelease = `-- name: CreateRelease :exec
@@ -16,7 +18,7 @@ INSERT INTO releases (id, album_id, format) VALUES (?, ?, ?)
 type CreateReleaseParams struct {
 	ID      string
 	AlbumID string
-	Format  string
+	Format  models.ReleaseFormat
 }
 
 func (q *Queries) CreateRelease(ctx context.Context, arg CreateReleaseParams) error {
@@ -24,7 +26,7 @@ func (q *Queries) CreateRelease(ctx context.Context, arg CreateReleaseParams) er
 	return err
 }
 
-const getOrCreateRelease = `-- name: GetOrCreateRelease :exec
+const getOrCreateRelease = `-- name: GetOrCreateRelease :one
 INSERT INTO releases (id, album_id, format) VALUES (?, ?, ?)
 ON CONFLICT (album_id, format)
 DO UPDATE SET album_id = album_id
@@ -34,12 +36,20 @@ RETURNING id, album_id, format, created_at, deleted_at
 type GetOrCreateReleaseParams struct {
 	ID      string
 	AlbumID string
-	Format  string
+	Format  models.ReleaseFormat
 }
 
-func (q *Queries) GetOrCreateRelease(ctx context.Context, arg GetOrCreateReleaseParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateRelease, arg.ID, arg.AlbumID, arg.Format)
-	return err
+func (q *Queries) GetOrCreateRelease(ctx context.Context, arg GetOrCreateReleaseParams) (Release, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateRelease, arg.ID, arg.AlbumID, arg.Format)
+	var i Release
+	err := row.Scan(
+		&i.ID,
+		&i.AlbumID,
+		&i.Format,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }
 
 const getRelease = `-- name: GetRelease :one
@@ -102,7 +112,7 @@ WHERE id = ?
 
 type UpdateReleaseParams struct {
 	AlbumID string
-	Format  string
+	Format  models.ReleaseFormat
 	ID      string
 }
 

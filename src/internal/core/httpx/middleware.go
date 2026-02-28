@@ -7,6 +7,7 @@ import (
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/spotify"
+	"shmoopicks/src/internal/user"
 	"time"
 )
 
@@ -19,7 +20,7 @@ func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc
 	return handler
 }
 
-func JwtMiddleware(spotifyService *spotify.Service) Middleware {
+func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) Middleware {
 	return func(next HandlerFunc) HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			ctx := contextx.NewContextX(r.Context())
@@ -44,15 +45,12 @@ func JwtMiddleware(spotifyService *spotify.Service) Middleware {
 			}
 			ctx = ctx.WithApp(a)
 
-			if claims.SpotifyToken != nil {
-				user, err := spotifyService.GetUser(ctx)
-				if err != nil {
-					HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get user: %w", err))
-					return
-				}
-
-				ctx = ctx.WithUserId(user.ID)
+			user, err := userService.GetUserFromCtx(ctx)
+			if err != nil {
+				HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("failed to get user: %w", err))
+				return
 			}
+			ctx = ctx.WithUserId(user.ID)
 
 			r = r.WithContext(ctx)
 			// Call next handler

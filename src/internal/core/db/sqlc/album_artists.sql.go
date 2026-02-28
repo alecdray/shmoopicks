@@ -7,13 +7,106 @@ package sqlc
 
 import (
 	"context"
+	"strings"
 )
 
-const getOrCreateAlbumArtist = `-- name: GetOrCreateAlbumArtist :exec
+const getAlbumArtistByAlbumId = `-- name: GetAlbumArtistByAlbumId :many
+SELECT album_artists.album_id, artists.id, artists.spotify_id, artists.name, artists.created_at, artists.deleted_at FROM album_artists
+JOIN artists ON album_artists.artist_id = artists.id
+WHERE album_id = ?
+`
+
+type GetAlbumArtistByAlbumIdRow struct {
+	AlbumID string
+	Artist  Artist
+}
+
+func (q *Queries) GetAlbumArtistByAlbumId(ctx context.Context, albumID string) ([]GetAlbumArtistByAlbumIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAlbumArtistByAlbumId, albumID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAlbumArtistByAlbumIdRow
+	for rows.Next() {
+		var i GetAlbumArtistByAlbumIdRow
+		if err := rows.Scan(
+			&i.AlbumID,
+			&i.Artist.ID,
+			&i.Artist.SpotifyID,
+			&i.Artist.Name,
+			&i.Artist.CreatedAt,
+			&i.Artist.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAlbumArtistsByAlbumIds = `-- name: GetAlbumArtistsByAlbumIds :many
+SELECT album_artists.album_id, artists.id, artists.spotify_id, artists.name, artists.created_at, artists.deleted_at FROM album_artists
+JOIN artists ON album_artists.artist_id = artists.id
+WHERE album_id IN (/*SLICE:album_ids*/?)
+`
+
+type GetAlbumArtistsByAlbumIdsRow struct {
+	AlbumID string
+	Artist  Artist
+}
+
+func (q *Queries) GetAlbumArtistsByAlbumIds(ctx context.Context, albumIds []string) ([]GetAlbumArtistsByAlbumIdsRow, error) {
+	query := getAlbumArtistsByAlbumIds
+	var queryParams []interface{}
+	if len(albumIds) > 0 {
+		for _, v := range albumIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:album_ids*/?", strings.Repeat(",?", len(albumIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:album_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAlbumArtistsByAlbumIdsRow
+	for rows.Next() {
+		var i GetAlbumArtistsByAlbumIdsRow
+		if err := rows.Scan(
+			&i.AlbumID,
+			&i.Artist.ID,
+			&i.Artist.SpotifyID,
+			&i.Artist.Name,
+			&i.Artist.CreatedAt,
+			&i.Artist.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrCreateAlbumArtist = `-- name: GetOrCreateAlbumArtist :one
 INSERT INTO album_artists (album_id, artist_id) VALUES (?, ?)
 ON CONFLICT (album_id, artist_id)
 DO UPDATE SET album_id = album_id
-RETURNING id, album_id, artist_id
+RETURNING album_id, artist_id
 `
 
 type GetOrCreateAlbumArtistParams struct {
@@ -21,7 +114,9 @@ type GetOrCreateAlbumArtistParams struct {
 	ArtistID string
 }
 
-func (q *Queries) GetOrCreateAlbumArtist(ctx context.Context, arg GetOrCreateAlbumArtistParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateAlbumArtist, arg.AlbumID, arg.ArtistID)
-	return err
+func (q *Queries) GetOrCreateAlbumArtist(ctx context.Context, arg GetOrCreateAlbumArtistParams) (AlbumArtist, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateAlbumArtist, arg.AlbumID, arg.ArtistID)
+	var i AlbumArtist
+	err := row.Scan(&i.AlbumID, &i.ArtistID)
+	return i, err
 }

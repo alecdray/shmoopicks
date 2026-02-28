@@ -98,14 +98,14 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
-	_, err = h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID)
+	user, err := h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID)
 	if err != nil {
 		err = fmt.Errorf("failed to upsert spotify user: %w", err)
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
 		return
 	}
 
-	_, err = h.feedService.UpsertFeed(ctx, spotifyUser.ID, models.FeedKindSpotify)
+	_, err = h.feedService.UpsertFeed(ctx, user.ID, models.FeedKindSpotify)
 	if err != nil {
 		err = fmt.Errorf("failed to upsert feed: %w", err)
 		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)

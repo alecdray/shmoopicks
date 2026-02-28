@@ -9,19 +9,73 @@ import (
 	"context"
 )
 
-const getOrCreateUserRelease = `-- name: GetOrCreateUserRelease :exec
-INSERT INTO user_releases (user_id, release_id) VALUES (?, ?)
+const getOrCreateUserRelease = `-- name: GetOrCreateUserRelease :one
+INSERT INTO user_releases (id, user_id, release_id) VALUES (?, ?, ?)
 ON CONFLICT (user_id, release_id)
 DO UPDATE SET user_id = user_id
 RETURNING id, user_id, release_id, added_at, deleted_at
 `
 
 type GetOrCreateUserReleaseParams struct {
+	ID        string
 	UserID    string
 	ReleaseID string
 }
 
-func (q *Queries) GetOrCreateUserRelease(ctx context.Context, arg GetOrCreateUserReleaseParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateUserRelease, arg.UserID, arg.ReleaseID)
-	return err
+func (q *Queries) GetOrCreateUserRelease(ctx context.Context, arg GetOrCreateUserReleaseParams) (UserRelease, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateUserRelease, arg.ID, arg.UserID, arg.ReleaseID)
+	var i UserRelease
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ReleaseID,
+		&i.AddedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getUserReleases = `-- name: GetUserReleases :many
+SELECT user_releases.id, user_releases.user_id, user_releases.release_id, user_releases.added_at, user_releases.deleted_at, releases.id, releases.album_id, releases.format, releases.created_at, releases.deleted_at FROM user_releases
+JOIN releases ON user_releases.release_id = releases.id
+WHERE user_id = ?
+`
+
+type GetUserReleasesRow struct {
+	UserRelease UserRelease
+	Release     Release
+}
+
+func (q *Queries) GetUserReleases(ctx context.Context, userID string) ([]GetUserReleasesRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserReleases, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserReleasesRow
+	for rows.Next() {
+		var i GetUserReleasesRow
+		if err := rows.Scan(
+			&i.UserRelease.ID,
+			&i.UserRelease.UserID,
+			&i.UserRelease.ReleaseID,
+			&i.UserRelease.AddedAt,
+			&i.UserRelease.DeletedAt,
+			&i.Release.ID,
+			&i.Release.AlbumID,
+			&i.Release.Format,
+			&i.Release.CreatedAt,
+			&i.Release.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

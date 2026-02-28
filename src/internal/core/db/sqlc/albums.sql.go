@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"strings"
 )
 
 const createAlbum = `-- name: CreateAlbum :exec
@@ -58,7 +59,50 @@ func (q *Queries) GetAlbumBySpotifyId(ctx context.Context, spotifyID string) (Al
 	return i, err
 }
 
-const getOrCreateAlbum = `-- name: GetOrCreateAlbum :exec
+const getAlbumsByIDs = `-- name: GetAlbumsByIDs :many
+SELECT id, spotify_id, title, created_at, deleted_at FROM albums WHERE id IN (/*SLICE:ids*/?)
+`
+
+func (q *Queries) GetAlbumsByIDs(ctx context.Context, ids []string) ([]Album, error) {
+	query := getAlbumsByIDs
+	var queryParams []interface{}
+	if len(ids) > 0 {
+		for _, v := range ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Album
+	for rows.Next() {
+		var i Album
+		if err := rows.Scan(
+			&i.ID,
+			&i.SpotifyID,
+			&i.Title,
+			&i.CreatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrCreateAlbum = `-- name: GetOrCreateAlbum :one
 INSERT INTO albums (id, spotify_id, title) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
 DO UPDATE SET spotify_id = spotify_id
@@ -71,7 +115,15 @@ type GetOrCreateAlbumParams struct {
 	Title     string
 }
 
-func (q *Queries) GetOrCreateAlbum(ctx context.Context, arg GetOrCreateAlbumParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateAlbum, arg.ID, arg.SpotifyID, arg.Title)
-	return err
+func (q *Queries) GetOrCreateAlbum(ctx context.Context, arg GetOrCreateAlbumParams) (Album, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateAlbum, arg.ID, arg.SpotifyID, arg.Title)
+	var i Album
+	err := row.Scan(
+		&i.ID,
+		&i.SpotifyID,
+		&i.Title,
+		&i.CreatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

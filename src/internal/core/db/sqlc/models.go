@@ -20,13 +20,11 @@ type Album struct {
 }
 
 type AlbumArtist struct {
-	ID       string
 	AlbumID  string
 	ArtistID string
 }
 
 type AlbumTrack struct {
-	ID      string
 	AlbumID string
 	TrackID string
 }
@@ -40,11 +38,13 @@ type Artist struct {
 }
 
 type Feed struct {
-	ID           string
-	UserID       string
-	Kind         models.FeedKind
-	CreatedAt    time.Time
-	LastSyncedAt sql.NullTime
+	ID                  string
+	UserID              string
+	Kind                models.FeedKind
+	CreatedAt           time.Time
+	LastSyncCompletedAt sql.NullTime
+	LastSyncStartedAt   sql.NullTime
+	LastSyncStatus      models.FeedSyncStatus
 }
 
 type GooseDbVersion struct {
@@ -57,7 +57,7 @@ type GooseDbVersion struct {
 type Release struct {
 	ID        string
 	AlbumID   string
-	Format    string
+	Format    models.ReleaseFormat
 	CreatedAt time.Time
 	DeletedAt sql.NullTime
 }
@@ -71,7 +71,6 @@ type Track struct {
 	ID        string
 	SpotifyID string
 	Title     string
-	AlbumID   string
 	CreatedAt time.Time
 	DeletedAt sql.NullTime
 }

@@ -12,6 +12,7 @@ import (
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/dashboard"
 	"shmoopicks/src/internal/feed"
+	"shmoopicks/src/internal/library"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
 	"shmoopicks/src/internal/user"
@@ -51,7 +52,9 @@ func Start(ctx context.Context, app app.App) {
 
 	spotifyService := spotify.NewService()
 
-	feedService := feed.NewService(db, spotifyService)
+	libraryService := library.NewService(db)
+
+	feedService := feed.NewService(db, spotifyService, libraryService)
 
 	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
 
@@ -62,7 +65,7 @@ func Start(ctx context.Context, app app.App) {
 	rootMux.Handle("/logout", httpx.HandlerFunc(authHandler.Logout))
 	rootMux.Handle("/spotify/callback", httpx.HandlerFunc(authHandler.AuthorizeSpotify))
 
-	appMux := httpx.NewMux(app, httpx.JwtMiddleware(spotifyService))
+	appMux := httpx.NewMux(app, httpx.JwtMiddleware(spotifyService, userService))
 	rootMux.Use("/app/", appMux)
 
 	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService)

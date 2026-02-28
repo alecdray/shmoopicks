@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"shmoopicks/src/internal/core/db/sqlc"
 	"time"
 
@@ -42,6 +43,13 @@ func NewDB(filepath string) (*DB, error) {
 	return db, nil
 }
 
+func newDBWithTx(db DB, tx *sql.Tx) *DB {
+	queries := sqlc.New(tx)
+	db.queries = queries
+	dbTx := &db
+	return dbTx
+}
+
 func (db *DB) Sql() *sql.DB {
 	return db.sql
 }
@@ -52,6 +60,27 @@ func (db *DB) Queries() *sqlc.Queries {
 
 func (db *DB) Close() error {
 	return db.sql.Close()
+}
+
+func (db *DB) WithTx(fn func(*DB) error) error {
+	tx, err := db.sql.Begin()
+	if err != nil {
+		err = fmt.Errorf("failed to begin transaction: %w", err)
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
+
+	dbTx := newDBWithTx(*db, tx)
+	err = fn(dbTx)
+
+	return err
 }
 
 func (db *DB) runMigrations() error {

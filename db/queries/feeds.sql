@@ -11,6 +11,14 @@ ON CONFLICT (user_id, kind) DO UPDATE SET
     kind = excluded.kind
 RETURNING *;
 
+-- name: UpdateFeed :one
+UPDATE feeds
+SET last_sync_completed_at = COALESCE(?, last_sync_completed_at),
+    last_sync_started_at = COALESCE(?, last_sync_started_at),
+    last_sync_status = COALESCE(?, last_sync_status)
+WHERE id = ?
+RETURNING *;
+
 -- name: GetFeedsByUserId :many
 select * from feeds where user_id = ?;
 

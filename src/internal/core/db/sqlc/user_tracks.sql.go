@@ -10,18 +10,64 @@ import (
 )
 
 const getOrCreateUserTrack = `-- name: GetOrCreateUserTrack :exec
-INSERT INTO user_tracks (user_id, track_id) VALUES (?, ?)
+INSERT INTO user_tracks (id, user_id, track_id) VALUES (?, ?, ?)
 ON CONFLICT (user_id, track_id)
 DO UPDATE SET user_id = user_id
 RETURNING id, user_id, track_id, added_at, deleted_at
 `
 
 type GetOrCreateUserTrackParams struct {
+	ID      string
 	UserID  string
 	TrackID string
 }
 
 func (q *Queries) GetOrCreateUserTrack(ctx context.Context, arg GetOrCreateUserTrackParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateUserTrack, arg.UserID, arg.TrackID)
+	_, err := q.db.ExecContext(ctx, getOrCreateUserTrack, arg.ID, arg.UserID, arg.TrackID)
 	return err
+}
+
+const getUserTracks = `-- name: GetUserTracks :many
+SELECT user_tracks.id, user_tracks.user_id, user_tracks.track_id, user_tracks.added_at, user_tracks.deleted_at, tracks.id, tracks.spotify_id, tracks.title, tracks.created_at, tracks.deleted_at FROM user_tracks
+JOIN tracks ON user_tracks.track_id = tracks.id
+WHERE user_id = ?
+`
+
+type GetUserTracksRow struct {
+	UserTrack UserTrack
+	Track     Track
+}
+
+func (q *Queries) GetUserTracks(ctx context.Context, userID string) ([]GetUserTracksRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserTracks, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserTracksRow
+	for rows.Next() {
+		var i GetUserTracksRow
+		if err := rows.Scan(
+			&i.UserTrack.ID,
+			&i.UserTrack.UserID,
+			&i.UserTrack.TrackID,
+			&i.UserTrack.AddedAt,
+			&i.UserTrack.DeletedAt,
+			&i.Track.ID,
+			&i.Track.SpotifyID,
+			&i.Track.Title,
+			&i.Track.CreatedAt,
+			&i.Track.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

@@ -1,7 +1,7 @@
 -- name: CreateRelease :exec
 INSERT INTO releases (id, album_id, format) VALUES (?, ?, ?);
 
--- name: GetOrCreateRelease :exec
+-- name: GetOrCreateRelease :one
 INSERT INTO releases (id, album_id, format) VALUES (?, ?, ?)
 ON CONFLICT (album_id, format)
 DO UPDATE SET album_id = album_id

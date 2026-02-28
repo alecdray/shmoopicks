@@ -1,0 +1,286 @@
+package library
+
+import (
+	"context"
+	"fmt"
+	"shmoopicks/src/internal/core/db"
+	"shmoopicks/src/internal/core/db/models"
+	"shmoopicks/src/internal/core/db/sqlc"
+	"time"
+
+	"github.com/google/uuid"
+)
+
+type ReleaseDTO struct {
+	ID      string
+	AlbumID string
+	Format  models.ReleaseFormat
+	AddedAt *time.Time
+}
+
+func NewReleaseDTOFromModel(model sqlc.Release, userRelease *sqlc.UserRelease) ReleaseDTO {
+	dto := ReleaseDTO{
+		ID:      model.ID,
+		AlbumID: model.AlbumID,
+		Format:  model.Format,
+	}
+
+	if userRelease != nil {
+		dto.AddedAt = &userRelease.AddedAt
+	}
+
+	return dto
+}
+
+type TrackDTO struct {
+	ID        string
+	SpotifyID string
+	Title     string
+}
+
+func NewTrackDTOFromModel(model sqlc.Track) TrackDTO {
+	dto := TrackDTO{
+		ID:        model.ID,
+		SpotifyID: model.SpotifyID,
+		Title:     model.Title,
+	}
+
+	return dto
+}
+
+type ArtistDTO struct {
+	ID        string
+	SpotifyID string
+	Name      string
+}
+
+func NewArtistDTOFromModel(model sqlc.Artist) ArtistDTO {
+	dto := ArtistDTO{
+		ID:        model.ID,
+		SpotifyID: model.SpotifyID,
+		Name:      model.Name,
+	}
+
+	return dto
+}
+
+type AlbumDTO struct {
+	ID        string
+	SpotifyID string
+	Title     string
+	Artists   []ArtistDTO
+	Tracks    []TrackDTO
+	Releases  []ReleaseDTO
+}
+
+func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackDTO, releases []ReleaseDTO) AlbumDTO {
+	return AlbumDTO{
+		ID:        model.ID,
+		SpotifyID: model.SpotifyID,
+		Title:     model.Title,
+		Artists:   artists,
+		Tracks:    tracks,
+		Releases:  releases,
+	}
+}
+
+type Library struct {
+	OwnerUserID string
+	Albums      []AlbumDTO
+}
+
+func NewLibrary(ownerUserID string, albums []AlbumDTO) *Library {
+	return &Library{
+		OwnerUserID: ownerUserID,
+		Albums:      albums,
+	}
+}
+
+type Service struct {
+	db *db.DB
+}
+
+func NewService(db *db.DB) *Service {
+	return &Service{
+		db: db,
+	}
+}
+
+func (s *Service) GetReleasesInLibrary(ctx context.Context, userId string) ([]ReleaseDTO, error) {
+	releases, err := s.db.Queries().GetUserReleases(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get user releases: %w", err)
+		return nil, err
+	}
+
+	var releaseDTOs []ReleaseDTO
+	for _, release := range releases {
+		releaseDTOs = append(releaseDTOs, NewReleaseDTOFromModel(release.Release, &release.UserRelease))
+	}
+
+	return releaseDTOs, nil
+}
+
+func (s *Service) GetAlbumsInLibrary(ctx context.Context, userId string) ([]AlbumDTO, error) {
+	releases, err := s.GetReleasesInLibrary(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get releases: %w", err)
+	}
+
+	releasesByAlbumId := make(map[string][]ReleaseDTO, len(releases))
+	albumIds := make([]string, 0, len(releases))
+	for _, release := range releases {
+		albumIds = append(albumIds, release.AlbumID)
+		releasesByAlbumId[release.AlbumID] = append(releasesByAlbumId[release.AlbumID], release)
+
+	}
+
+	albums, err := s.db.Queries().GetAlbumsByIDs(ctx, albumIds)
+	if err != nil {
+		err = fmt.Errorf("failed to get albums: %w", err)
+		return nil, err
+	}
+
+	artists, err := s.db.Queries().GetAlbumArtistsByAlbumIds(ctx, albumIds)
+	if err != nil {
+		err = fmt.Errorf("failed to get album artists: %w", err)
+		return nil, err
+	}
+
+	artistsByAlbumId := make(map[string][]ArtistDTO, len(albumIds))
+	for _, artist := range artists {
+		artistsByAlbumId[artist.AlbumID] = append(artistsByAlbumId[artist.AlbumID], NewArtistDTOFromModel(artist.Artist))
+	}
+
+	tracks, err := s.db.Queries().GetAlbumTracksByAlbumIds(ctx, albumIds)
+	if err != nil {
+		err = fmt.Errorf("failed to get album tracks: %w", err)
+		return nil, err
+	}
+
+	tracksByAlbumId := make(map[string][]TrackDTO, len(albumIds))
+	for _, track := range tracks {
+		tracksByAlbumId[track.AlbumID] = append(tracksByAlbumId[track.AlbumID], NewTrackDTOFromModel(track.Track))
+	}
+
+	var albumDTOs []AlbumDTO
+	for _, album := range albums {
+		dto := NewAlbumDTOFromModel(
+			album,
+			artistsByAlbumId[album.ID],
+			tracksByAlbumId[album.ID],
+			releasesByAlbumId[album.ID],
+		)
+		albumDTOs = append(albumDTOs, dto)
+	}
+
+	return albumDTOs, nil
+}
+
+func (s *Service) GetLibrary(ctx context.Context, userId string) (*Library, error) {
+	albums, err := s.GetAlbumsInLibrary(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get user albums: %w", err)
+		return nil, err
+	}
+
+	return NewLibrary(userId, albums), nil
+}
+
+func (s *Service) AddAlbumsToLibrary(ctx context.Context, userId string, albums []AlbumDTO) error {
+	err := s.db.WithTx(func(tx *db.DB) error {
+		for _, album := range albums {
+			// insert album
+			albumModel, err := tx.Queries().GetOrCreateAlbum(ctx, sqlc.GetOrCreateAlbumParams{
+				ID:        album.ID,
+				SpotifyID: album.SpotifyID,
+				Title:     album.Title,
+			})
+			if err != nil {
+				err = fmt.Errorf("failed to get/create album: %w", err)
+				return err
+			}
+			album = NewAlbumDTOFromModel(albumModel, album.Artists, album.Tracks, album.Releases)
+
+			for i, track := range album.Tracks {
+				// insert tracks
+				trackModel, err := tx.Queries().GetOrCreateTrack(ctx, sqlc.GetOrCreateTrackParams{
+					ID:        track.ID,
+					SpotifyID: track.SpotifyID,
+					Title:     track.Title,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create track: %w", err)
+					return err
+				}
+
+				// insert album_tracks
+				_, err = tx.Queries().GetOrCreateAlbumTrack(ctx, sqlc.GetOrCreateAlbumTrackParams{
+					AlbumID: albumModel.ID,
+					TrackID: trackModel.ID,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create album track: %w", err)
+					return err
+				}
+
+				album.Tracks[i] = NewTrackDTOFromModel(trackModel)
+			}
+
+			for i, artist := range album.Artists {
+				// insert artsits
+				artistModel, err := tx.Queries().GetOrCreateArtist(ctx, sqlc.GetOrCreateArtistParams{
+					ID:        artist.ID,
+					SpotifyID: artist.SpotifyID,
+					Name:      artist.Name,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create artist: %w", err)
+					return err
+				}
+
+				// insert album_artists
+				_, err = tx.Queries().GetOrCreateAlbumArtist(ctx, sqlc.GetOrCreateAlbumArtistParams{
+					AlbumID:  albumModel.ID,
+					ArtistID: artistModel.ID,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create album artist: %w", err)
+					return err
+				}
+
+				album.Artists[i] = NewArtistDTOFromModel(artistModel)
+			}
+
+			for i, release := range album.Releases {
+				// insert releases
+				releaseModel, err := tx.Queries().GetOrCreateRelease(ctx, sqlc.GetOrCreateReleaseParams{
+					ID:      release.ID,
+					AlbumID: album.ID,
+					Format:  release.Format,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create release: %w", err)
+					return err
+				}
+
+				// insert user_releases
+				userRelease, err := tx.Queries().GetOrCreateUserRelease(ctx, sqlc.GetOrCreateUserReleaseParams{
+					ID:        uuid.New().String(),
+					UserID:    userId,
+					ReleaseID: releaseModel.ID,
+				})
+				if err != nil {
+					err = fmt.Errorf("failed to get/create user release: %w", err)
+					return err
+				}
+
+				album.Releases[i] = NewReleaseDTOFromModel(releaseModel, &userRelease)
+			}
+		}
+
+		return nil
+	})
+
+	return err
+}

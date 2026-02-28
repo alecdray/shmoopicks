@@ -40,10 +40,14 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, feed := range feeds {
-		if feed.Kind == models.FeedKindSpotify && feed.IsStale() {
-			err := h.feedService.SyncSpotifyFeed(ctx, feed)
+		if feed.Kind == models.FeedKindSpotify && !feed.IsSynced() {
+			syncedFeed, err := h.feedService.SyncSpotifyFeed(ctx, feed)
 			if err != nil {
 				slog.Error("failed to sync spotify feed", "error", err)
+			}
+
+			if syncedFeed != nil {
+				feed = *syncedFeed
 			}
 		}
 	}

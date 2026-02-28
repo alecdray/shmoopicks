@@ -10,18 +10,64 @@ import (
 )
 
 const getOrCreateUserArtist = `-- name: GetOrCreateUserArtist :exec
-INSERT INTO user_artists (user_id, artist_id) VALUES (?, ?)
+INSERT INTO user_artists (id, user_id, artist_id) VALUES (?, ?, ?)
 ON CONFLICT (user_id, artist_id)
 DO UPDATE SET user_id = user_id
 RETURNING id, user_id, artist_id, added_at, deleted_at
 `
 
 type GetOrCreateUserArtistParams struct {
+	ID       string
 	UserID   string
 	ArtistID string
 }
 
 func (q *Queries) GetOrCreateUserArtist(ctx context.Context, arg GetOrCreateUserArtistParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateUserArtist, arg.UserID, arg.ArtistID)
+	_, err := q.db.ExecContext(ctx, getOrCreateUserArtist, arg.ID, arg.UserID, arg.ArtistID)
 	return err
+}
+
+const getUserArtists = `-- name: GetUserArtists :many
+SELECT user_artists.id, user_artists.user_id, user_artists.artist_id, user_artists.added_at, user_artists.deleted_at, artists.id, artists.spotify_id, artists.name, artists.created_at, artists.deleted_at FROM user_artists
+JOIN artists ON user_artists.artist_id = artists.id
+WHERE user_id = ?
+`
+
+type GetUserArtistsRow struct {
+	UserArtist UserArtist
+	Artist     Artist
+}
+
+func (q *Queries) GetUserArtists(ctx context.Context, userID string) ([]GetUserArtistsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserArtists, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserArtistsRow
+	for rows.Next() {
+		var i GetUserArtistsRow
+		if err := rows.Scan(
+			&i.UserArtist.ID,
+			&i.UserArtist.UserID,
+			&i.UserArtist.ArtistID,
+			&i.UserArtist.AddedAt,
+			&i.UserArtist.DeletedAt,
+			&i.Artist.ID,
+			&i.Artist.SpotifyID,
+			&i.Artist.Name,
+			&i.Artist.CreatedAt,
+			&i.Artist.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

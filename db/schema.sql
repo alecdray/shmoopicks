@@ -29,21 +29,8 @@ CREATE TABLE tracks (
     id text primary key,
     spotify_id text not null unique,
     title text not null,
-    album_id text not null references albums(id) on delete cascade,
     created_at datetime not null default current_timestamp,
     deleted_at datetime
-);
-CREATE TABLE album_artists (
-    id text primary key,
-    album_id text not null references albums(id) on delete cascade,
-    artist_id text not null references artists(id) on delete cascade,
-    unique(album_id, artist_id)
-);
-CREATE TABLE album_tracks (
-    id text primary key,
-    album_id text not null references albums(id) on delete cascade,
-    track_id text not null references tracks(id) on delete cascade,
-    unique(album_id, track_id)
 );
 CREATE TABLE releases (
     id text primary key,
@@ -81,7 +68,16 @@ CREATE TABLE feeds (
     id text primary key,
     user_id text not null references users(id) on delete cascade,
     kind text not null check(kind in ('spotify')),
-    created_at datetime not null default current_timestamp,
-    last_synced_at datetime,
+    created_at datetime not null default current_timestamp, last_sync_completed_at datetime, last_sync_started_at datetime, last_sync_status text default 'none' check(last_sync_status in ('none', 'success', 'failure', 'pending')),
     unique(user_id, kind)
+);
+CREATE TABLE IF NOT EXISTS "album_artists" (
+    album_id text not null references albums(id) on delete cascade,
+    artist_id text not null references artists(id) on delete cascade,
+    unique(album_id, artist_id)
+);
+CREATE TABLE IF NOT EXISTS "album_tracks" (
+    album_id text not null references albums(id) on delete cascade,
+    track_id text not null references tracks(id) on delete cascade,
+    unique(album_id, track_id)
 );

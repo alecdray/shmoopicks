@@ -10,52 +10,48 @@ import (
 )
 
 const createTrack = `-- name: CreateTrack :exec
-INSERT INTO tracks (id, spotify_id, title, album_id) VALUES (?, ?, ?, ?)
+INSERT INTO tracks (id, spotify_id, title) VALUES (?, ?, ?)
 `
 
 type CreateTrackParams struct {
 	ID        string
 	SpotifyID string
 	Title     string
-	AlbumID   string
 }
 
 func (q *Queries) CreateTrack(ctx context.Context, arg CreateTrackParams) error {
-	_, err := q.db.ExecContext(ctx, createTrack,
-		arg.ID,
-		arg.SpotifyID,
-		arg.Title,
-		arg.AlbumID,
-	)
+	_, err := q.db.ExecContext(ctx, createTrack, arg.ID, arg.SpotifyID, arg.Title)
 	return err
 }
 
-const getOrCreateTrack = `-- name: GetOrCreateTrack :exec
-INSERT INTO tracks (id, spotify_id, title, album_id) VALUES (?, ?, ?, ?)
+const getOrCreateTrack = `-- name: GetOrCreateTrack :one
+INSERT INTO tracks (id, spotify_id, title) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
 DO UPDATE SET spotify_id = spotify_id
-RETURNING id, spotify_id, title, album_id, created_at, deleted_at
+RETURNING id, spotify_id, title, created_at, deleted_at
 `
 
 type GetOrCreateTrackParams struct {
 	ID        string
 	SpotifyID string
 	Title     string
-	AlbumID   string
 }
 
-func (q *Queries) GetOrCreateTrack(ctx context.Context, arg GetOrCreateTrackParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateTrack,
-		arg.ID,
-		arg.SpotifyID,
-		arg.Title,
-		arg.AlbumID,
+func (q *Queries) GetOrCreateTrack(ctx context.Context, arg GetOrCreateTrackParams) (Track, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateTrack, arg.ID, arg.SpotifyID, arg.Title)
+	var i Track
+	err := row.Scan(
+		&i.ID,
+		&i.SpotifyID,
+		&i.Title,
+		&i.CreatedAt,
+		&i.DeletedAt,
 	)
-	return err
+	return i, err
 }
 
 const getTrack = `-- name: GetTrack :one
-SELECT id, spotify_id, title, album_id, created_at, deleted_at FROM tracks WHERE id = ?
+SELECT id, spotify_id, title, created_at, deleted_at FROM tracks WHERE id = ?
 `
 
 func (q *Queries) GetTrack(ctx context.Context, id string) (Track, error) {
@@ -65,7 +61,6 @@ func (q *Queries) GetTrack(ctx context.Context, id string) (Track, error) {
 		&i.ID,
 		&i.SpotifyID,
 		&i.Title,
-		&i.AlbumID,
 		&i.CreatedAt,
 		&i.DeletedAt,
 	)
@@ -73,7 +68,7 @@ func (q *Queries) GetTrack(ctx context.Context, id string) (Track, error) {
 }
 
 const getTrackBySpotifyId = `-- name: GetTrackBySpotifyId :one
-SELECT id, spotify_id, title, album_id, created_at, deleted_at FROM tracks WHERE spotify_id = ?
+SELECT id, spotify_id, title, created_at, deleted_at FROM tracks WHERE spotify_id = ?
 `
 
 func (q *Queries) GetTrackBySpotifyId(ctx context.Context, spotifyID string) (Track, error) {
@@ -83,7 +78,6 @@ func (q *Queries) GetTrackBySpotifyId(ctx context.Context, spotifyID string) (Tr
 		&i.ID,
 		&i.SpotifyID,
 		&i.Title,
-		&i.AlbumID,
 		&i.CreatedAt,
 		&i.DeletedAt,
 	)

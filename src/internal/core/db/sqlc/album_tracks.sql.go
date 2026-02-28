@@ -7,21 +7,116 @@ package sqlc
 
 import (
 	"context"
+	"strings"
 )
 
-const getOrCreateAlbumTracks = `-- name: GetOrCreateAlbumTracks :exec
+const getAlbumTrackByAlbumId = `-- name: GetAlbumTrackByAlbumId :many
+SELECT album_tracks.album_id, tracks.id, tracks.spotify_id, tracks.title, tracks.created_at, tracks.deleted_at FROM album_tracks
+JOIN tracks ON album_tracks.track_id = tracks.id
+WHERE album_id = ?
+`
+
+type GetAlbumTrackByAlbumIdRow struct {
+	AlbumID string
+	Track   Track
+}
+
+func (q *Queries) GetAlbumTrackByAlbumId(ctx context.Context, albumID string) ([]GetAlbumTrackByAlbumIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAlbumTrackByAlbumId, albumID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAlbumTrackByAlbumIdRow
+	for rows.Next() {
+		var i GetAlbumTrackByAlbumIdRow
+		if err := rows.Scan(
+			&i.AlbumID,
+			&i.Track.ID,
+			&i.Track.SpotifyID,
+			&i.Track.Title,
+			&i.Track.CreatedAt,
+			&i.Track.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getAlbumTracksByAlbumIds = `-- name: GetAlbumTracksByAlbumIds :many
+SELECT album_tracks.album_id, tracks.id, tracks.spotify_id, tracks.title, tracks.created_at, tracks.deleted_at FROM album_tracks
+JOIN tracks ON album_tracks.track_id = tracks.id
+WHERE album_id IN (/*SLICE:album_ids*/?)
+`
+
+type GetAlbumTracksByAlbumIdsRow struct {
+	AlbumID string
+	Track   Track
+}
+
+func (q *Queries) GetAlbumTracksByAlbumIds(ctx context.Context, albumIds []string) ([]GetAlbumTracksByAlbumIdsRow, error) {
+	query := getAlbumTracksByAlbumIds
+	var queryParams []interface{}
+	if len(albumIds) > 0 {
+		for _, v := range albumIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:album_ids*/?", strings.Repeat(",?", len(albumIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:album_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAlbumTracksByAlbumIdsRow
+	for rows.Next() {
+		var i GetAlbumTracksByAlbumIdsRow
+		if err := rows.Scan(
+			&i.AlbumID,
+			&i.Track.ID,
+			&i.Track.SpotifyID,
+			&i.Track.Title,
+			&i.Track.CreatedAt,
+			&i.Track.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getOrCreateAlbumTrack = `-- name: GetOrCreateAlbumTrack :one
 INSERT INTO album_tracks (album_id, track_id) VALUES (?, ?)
 ON CONFLICT (album_id, track_id)
 DO UPDATE SET album_id = album_id
-RETURNING id, album_id, track_id
+RETURNING album_id, track_id
 `
 
-type GetOrCreateAlbumTracksParams struct {
+type GetOrCreateAlbumTrackParams struct {
 	AlbumID string
 	TrackID string
 }
 
-func (q *Queries) GetOrCreateAlbumTracks(ctx context.Context, arg GetOrCreateAlbumTracksParams) error {
-	_, err := q.db.ExecContext(ctx, getOrCreateAlbumTracks, arg.AlbumID, arg.TrackID)
-	return err
+func (q *Queries) GetOrCreateAlbumTrack(ctx context.Context, arg GetOrCreateAlbumTrackParams) (AlbumTrack, error) {
+	row := q.db.QueryRowContext(ctx, getOrCreateAlbumTrack, arg.AlbumID, arg.TrackID)
+	var i AlbumTrack
+	err := row.Scan(&i.AlbumID, &i.TrackID)
+	return i, err
 }

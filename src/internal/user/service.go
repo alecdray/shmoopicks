@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/db/sqlc"
@@ -33,6 +35,14 @@ func NewService(db *db.DB) *Service {
 	}
 }
 
+func (s *Service) GetUserById(ctx context.Context, id string) (*UserDTO, error) {
+	user, err := s.db.Queries().GetUser(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return NewUserDTOFromModel(user), nil
+}
+
 func (s *Service) GetUserBySpotifyID(ctx context.Context, spotifyId string) (*UserDTO, error) {
 	user, err := s.db.Queries().GetUserBySpotifyId(ctx, spotifyId)
 	if err != nil {
@@ -52,16 +62,44 @@ func (s *Service) UpsertSpotifyUser(ctx context.Context, spotifyId string) (*Use
 	return NewUserDTOFromModel(user), nil
 }
 
-func (s *Service) LoginSpotifyUser(ctx contextx.ContextX) (*UserDTO, error) {
-	user, err := s.spotifyService.GetUser(ctx)
-	if err != nil {
+func (s *Service) GetUserFromCtx(ctx contextx.ContextX) (*UserDTO, error) {
+	userId, err := ctx.UserId()
+	if errors.Is(err, contextx.ErrEmptyValue) {
+		userId = ""
+	} else if err != nil {
+		err = fmt.Errorf("failed to get user id: %w", err)
 		return nil, err
 	}
 
-	userDTO, err := s.GetUserBySpotifyID(ctx, user.ID)
+	if userId != "" {
+		userDto, err := s.GetUserById(ctx, userId)
+		if err != nil {
+			err = fmt.Errorf("failed to get user by id: %w", err)
+			return nil, err
+		}
+		return userDto, nil
+	}
+
+	app, err := ctx.App()
 	if err != nil {
+		err = fmt.Errorf("failed to get app: %w", err)
 		return nil, err
 	}
 
-	return userDTO, nil
+	if app.Claims() != nil && app.Claims().SpotifyToken != nil {
+		user, err := s.spotifyService.GetUser(ctx)
+		if err != nil {
+			err = fmt.Errorf("failed to get spotify user: %w", err)
+			return nil, err
+		}
+
+		userDTO, err := s.GetUserBySpotifyID(ctx, user.ID)
+		if err != nil {
+			err = fmt.Errorf("failed to get user by spotify id: %w", err)
+			return nil, err
+		}
+		return userDTO, nil
+	}
+
+	return nil, errors.New("unauthorized")
 }

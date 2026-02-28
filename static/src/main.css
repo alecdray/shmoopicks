@@ -4,3 +4,40 @@
 [x-cloak] {
     display: none !important;
 }
+
+[data-theme="wax"] {
+    color-scheme: dark;
+
+    --color-base-100: #0e0c0a;
+    --color-base-200: #1a1714;
+    --color-base-300: #2a2420;
+    --color-base-content: #f2e8d9;
+
+    --color-primary: #c97d2e;
+    --color-primary-content: #0e0c0a;
+
+    --color-secondary: #8b3a2a;
+    --color-secondary-content: #faf6ef;
+
+    --color-accent: #e09a4f;
+    --color-accent-content: #0e0c0a;
+
+    --color-neutral: #3d3530;
+    --color-neutral-content: #6b5f55;
+
+    --color-info: #6b5f55;
+    --color-info-content: #faf6ef;
+
+    --color-success: #3d7a5a;
+    --color-success-content: #faf6ef;
+
+    --color-warning: #a67c2e;
+    --color-warning-content: #0e0c0a;
+
+    --color-error: #8b2a2a;
+    --color-error-content: #faf6ef;
+
+    --rounded-box: 8px;
+    --rounded-btn: 4px;
+    --rounded-badge: 20px;
+}

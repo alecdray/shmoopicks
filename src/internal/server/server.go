@@ -68,7 +68,7 @@ func Start(ctx context.Context, app app.App) {
 	appMux := httpx.NewMux(app, httpx.JwtMiddleware(spotifyService, userService))
 	rootMux.Use("/app/", appMux)
 
-	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService)
+	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService, libraryService)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 
 	// Not found handler, must be registered after all other handlers

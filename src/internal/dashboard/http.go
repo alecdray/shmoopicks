@@ -1,26 +1,30 @@
 package dashboard
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/feed"
+	"shmoopicks/src/internal/library"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
 )
 
 type HttpHandler struct {
-	spotifyAuth *spotify.AuthService
-	mb          *musicbrainz.Service
-	feedService *feed.Service
+	spotifyAuth    *spotify.AuthService
+	mb             *musicbrainz.Service
+	feedService    *feed.Service
+	libraryService *library.Service
 }
 
-func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service) *HttpHandler {
+func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service, libraryService *library.Service) *HttpHandler {
 	return &HttpHandler{
-		spotifyAuth: spotifyAuth,
-		mb:          mb,
-		feedService: feedService,
+		spotifyAuth:    spotifyAuth,
+		mb:             mb,
+		feedService:    feedService,
+		libraryService: libraryService,
 	}
 }
 
@@ -52,8 +56,16 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	library, err := h.libraryService.GetLibrary(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get library: %w", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	dashboardPage := DashboardPage(DashboardPageProps{
-		Feeds: feeds,
+		Library: library,
+		Feeds:   feeds,
 	})
 	dashboardPage.Render(r.Context(), w)
 }

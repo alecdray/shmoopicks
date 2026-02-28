@@ -1,45 +1,206 @@
 package dashboard
 
 import (
+	"fmt"
+	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/feed"
+	"shmoopicks/src/internal/library"
 )
 
 type DashboardPageProps struct {
-	Feeds []feed.FeedDTO
+	Feeds   []feed.FeedDTO
+	Library *library.Library
+}
+
+func hasIssues(feeds []feed.FeedDTO) bool {
+	for _, f := range feeds {
+		if f.IsUnsyned() || f.IsStale() || f.LastSyncStatus == models.FeedSyncStatusFailure {
+			return true
+		}
+	}
+	return false
 }
 
 templ unsyncedToolTipContent() {
 	<span class="text-danger">Unsyned</span>
 }
 
+templ feedStatusTooltipContent(f feed.FeedDTO) {
+	<div class="text-sm">
+		<div class="font-semibold">{ string(f.Kind) }</div>
+		if f.IsUnsyned() {
+			<div class="text-warning">Never synced</div>
+		} else if f.IsSyncing() {
+			<div class="text-info">Syncing now...</div>
+		} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
+			<div class="text-error">Sync failed</div>
+			if f.LastSyncCompletedAt != nil {
+				<div class="text-xs opacity-70">{ f.LastSyncCompletedAt.Format("Jan 2, 3:04 PM") }</div>
+			}
+		} else if f.IsSynced() {
+			if f.IsStale() {
+				<div class="text-warning">Synced (stale)</div>
+			} else {
+				<div class="text-success">Synced</div>
+			}
+			if f.LastSyncCompletedAt != nil {
+				<div class="text-xs opacity-70">{ f.LastSyncCompletedAt.Format("Jan 2, 3:04 PM") }</div>
+			}
+		}
+	</div>
+}
+
+templ feedStatusBadge(f feed.FeedDTO) {
+	<div
+		class={
+			"badge badge-sm gap-1.5",
+			templ.KV("badge-warning", f.IsUnsyned() || f.IsStale()),
+			templ.KV("badge-info", f.IsSyncing()),
+			templ.KV("badge-success", f.IsSynced() && !f.IsStale()),
+			templ.KV("badge-error", f.LastSyncStatus == models.FeedSyncStatusFailure),
+		}
+	>
+		if f.IsUnsyned() {
+			@templates.WarningIcon(templates.IconProps{Style: templates.IconStyleOutline})
+		} else if f.IsSyncing() {
+			@templates.SpinnerIcon(templates.IconProps{})
+		} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
+			@templates.XMarkIcon(templates.IconProps{Style: templates.IconStyleOutline})
+		} else if f.IsSynced() {
+			@templates.CheckIcon(templates.IconProps{Style: templates.IconStyleOutline})
+		}
+		<span class="text-xs">{ string(f.Kind) }</span>
+	</div>
+}
+
+templ feedsDropdownContent(feeds []feed.FeedDTO) {
+	<div class="menu menu-compact w-56 p-2">
+		<div class="menu-title px-2 py-1">
+			<span class="text-xs font-semibold opacity-60">Feed Status</span>
+		</div>
+		if len(feeds) == 0 {
+			<div class="px-2 py-3 text-xs opacity-50">No feeds configured</div>
+		} else {
+			for _, f := range feeds {
+				<div class="flex items-center justify-between px-2 py-2 hover:bg-base-200 rounded-lg">
+					<div class="flex items-center gap-2">
+						if f.IsUnsyned() {
+							<div class="text-warning">
+								@templates.WarningIcon(templates.IconProps{Style: templates.IconStyleOutline})
+							</div>
+						} else if f.IsSyncing() {
+							<div class="text-info">
+								@templates.SpinnerIcon(templates.IconProps{})
+							</div>
+						} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
+							<div class="text-error">
+								@templates.XMarkIcon(templates.IconProps{Style: templates.IconStyleOutline})
+							</div>
+						} else if f.IsSynced() {
+							<div class={ templ.KV("text-success", !f.IsStale()), templ.KV("text-warning", f.IsStale()) }>
+								@templates.CheckIcon(templates.IconProps{Style: templates.IconStyleOutline})
+							</div>
+						}
+						<span class="text-sm font-medium">{ string(f.Kind) }</span>
+					</div>
+					<div class="text-xs opacity-60">
+						if f.IsUnsyned() {
+							Never synced
+						} else if f.IsSyncing() {
+							Syncing...
+						} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
+							Failed
+						} else if f.IsStale() {
+							Stale
+						} else {
+							OK
+						}
+					</div>
+				</div>
+			}
+		}
+	</div>
+}
+
+templ LibraryStats(lib *library.Library) {
+	if lib != nil {
+		<div class="w-full bg-base-200 border-b border-base-300">
+			<div class="px-6">
+				<div class="stats stats-horizontal shadow-sm w-full">
+					<div class="stat py-2">
+						<div class="stat-title text-xs">Artists</div>
+						<div class="stat-value text-2xl">{ fmt.Sprintf("%d", len(lib.Artists)) }</div>
+					</div>
+					<div class="stat py-2">
+						<div class="stat-title text-xs">Albums</div>
+						<div class="stat-value text-2xl">{ fmt.Sprintf("%d", len(lib.Albums)) }</div>
+					</div>
+					<div class="stat py-2">
+						<div class="stat-title text-xs">Tracks</div>
+						<div class="stat-value text-2xl">{ fmt.Sprintf("%d", len(lib.Tracks)) }</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+templ DashboardHeaderBar(feeds []feed.FeedDTO) {
+	<div class="bg-base-100 border-b border-base-300 h-11 w-full" hx-boost="true">
+		<div class="h-full flex items-center justify-between px-6">
+			<div class="flex items-center gap-4">
+				<a class="text-lg font-brand hover:opacity-70 transition-opacity" href="/home">shmoopicks</a>
+				<div class="h-4 w-px bg-base-300"></div>
+				<div class="flex items-center gap-1">
+					<div class="tooltip tooltip-bottom" data-tip="Home">
+						<a href="/home" class="btn btn-ghost btn-xs btn-square">
+							@templates.HomeIcon(templates.IconProps{Style: templates.IconStyleOutline})
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="flex items-center gap-2">
+				<div class="dropdown dropdown-end">
+					<div tabindex="0" role="button" class="btn btn-ghost btn-xs gap-1.5">
+						@templates.DatabaseIcon(templates.IconProps{})
+						<span class="text-xs">Feeds</span>
+						if len(feeds) > 0 {
+							<div
+								class={
+									"w-2 h-2 rounded-full",
+									templ.KV("bg-warning", hasIssues(feeds)),
+									templ.KV("bg-success", !hasIssues(feeds)),
+								}
+							></div>
+						}
+					</div>
+					<div tabindex="0" class="dropdown-content z-[1] card card-compact bg-base-100 shadow-xl border border-base-300 mt-1">
+						@feedsDropdownContent(feeds)
+					</div>
+				</div>
+				<div class="h-4 w-px bg-base-300"></div>
+				<div class="dropdown dropdown-end">
+					<div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle">
+						@templates.UserIcon(templates.IconProps{Style: templates.IconStyleOutline})
+					</div>
+					<ul tabindex="0" class="dropdown-content z-[1] menu menu-compact bg-base-100 rounded-box w-32 shadow-xl border border-base-300 mt-1">
+						<li><a href="/logout" class="text-xs">Logout</a></li>
+					</ul>
+				</div>
+			</div>
+		</div>
+	</div>
+}
+
 templ DashboardPage(props DashboardPageProps) {
 	@templates.RootComponent(templates.RootProps{
 		Title: templates.CreatePageTitle("Dashboard"),
 	}) {
-		@templates.NavBarComponent(templates.NaveBarProps{
-			ActivePage: templates.HomePage,
-			IsLoggedIn: true,
-		})
-		<div class="p-5">
-			<h1>Welcome to shmoopicks!</h1>
-			<h2>Your Feeds</h2>
-			<ul>
-				for _, feed := range props.Feeds {
-					<li>
-						{ feed.Kind }
-						if feed.IsUnsyned() {
-							@templates.ToolTip(templates.ToolTipProps{
-								Content: unsyncedToolTipContent(),
-							}) {
-								@templates.WarningIcon(templates.IconProps{
-									Style: templates.IconStyleOutline,
-								})
-							}
-						}
-					</li>
-				}
-			</ul>
+		@DashboardHeaderBar(props.Feeds)
+		@LibraryStats(props.Library)
+		<div class="p-6">
+			// Dashboard content goes here
 		</div>
 	}
 }

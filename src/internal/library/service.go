@@ -87,13 +87,52 @@ func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackD
 type Library struct {
 	OwnerUserID string
 	Albums      []AlbumDTO
+	Artists     []ArtistDTO
+	Tracks      []TrackDTO
 }
 
 func NewLibrary(ownerUserID string, albums []AlbumDTO) *Library {
-	return &Library{
+	lib := &Library{
 		OwnerUserID: ownerUserID,
 		Albums:      albums,
 	}
+
+	lib.Artists = lib.artists()
+	lib.Tracks = lib.tracks()
+
+	return lib
+}
+
+func (l *Library) artists() []ArtistDTO {
+	artistsSet := make(map[string]ArtistDTO)
+	for _, album := range l.Albums {
+		for _, artist := range album.Artists {
+			artistsSet[artist.ID] = artist
+		}
+	}
+
+	artists := make([]ArtistDTO, 0, len(artistsSet))
+	for _, artist := range artistsSet {
+		artists = append(artists, artist)
+	}
+
+	return artists
+}
+
+func (l *Library) tracks() []TrackDTO {
+	tracksSet := make(map[string]TrackDTO)
+	for _, album := range l.Albums {
+		for _, track := range album.Tracks {
+			tracksSet[track.ID] = track
+		}
+	}
+
+	tracks := make([]TrackDTO, 0, len(tracksSet))
+	for _, track := range tracksSet {
+		tracks = append(tracks, track)
+	}
+
+	return tracks
 }
 
 type Service struct {

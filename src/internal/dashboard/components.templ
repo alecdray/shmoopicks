@@ -6,6 +6,7 @@ import (
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
+	"time"
 )
 
 type DashboardPageProps struct {
@@ -123,9 +124,131 @@ templ feedsDropdownContent(feeds []feed.FeedDTO) {
 	</div>
 }
 
+templ releaseFormatIcon(format models.ReleaseFormat) {
+	switch format {
+		case models.ReleaseFormatVinyl:
+			@templates.VinylIcon(templates.IconProps{})
+		case models.ReleaseFormatCD:
+			@templates.CDIcon(templates.IconProps{})
+		case models.ReleaseFormatCassette:
+			@templates.CassetteIcon(templates.IconProps{})
+		case models.ReleaseFormatDigital:
+			@templates.DigitalIcon(templates.IconProps{})
+	}
+}
+
+templ releaseFormatBadge(release library.ReleaseDTO) {
+	<div class="tooltip" data-tip={ "Added: " + release.AddedAt.Format("Jan 2, 2006") }>
+		<div class="badge badge-sm gap-1.5">
+			@releaseFormatIcon(release.Format)
+			<span class="text-xs capitalize">{ string(release.Format) }</span>
+		</div>
+	</div>
+}
+
+func hasFormat(releases []library.ReleaseDTO, format models.ReleaseFormat) *library.ReleaseDTO {
+	for _, r := range releases {
+		if r.Format == format {
+			return &r
+		}
+	}
+	return nil
+}
+
+func oldestReleaseDate(releases []library.ReleaseDTO) *time.Time {
+	var oldest *time.Time
+	for _, r := range releases {
+		if r.AddedAt != nil {
+			if oldest == nil || r.AddedAt.Before(*oldest) {
+				oldest = r.AddedAt
+			}
+		}
+	}
+	return oldest
+}
+
+templ formatIcon(releases []library.ReleaseDTO, format models.ReleaseFormat) {
+	if release := hasFormat(releases, format); release != nil && release.AddedAt != nil {
+		<div class="tooltip tooltip-top" data-tip={ string(format) + " - " + release.AddedAt.Format("Jan 2, 2006") }>
+			<div class="opacity-100">
+				@releaseFormatIcon(format)
+			</div>
+		</div>
+	} else {
+		<div class="tooltip tooltip-top" data-tip={ string(format) + " - Not in library" }>
+			<div class="opacity-20">
+				@releaseFormatIcon(format)
+			</div>
+		</div>
+	}
+}
+
+templ albumRow(album library.AlbumDTO) {
+	<tr class="hover">
+		<td class="font-medium">{ album.Title }</td>
+		<td>
+			if len(album.Artists) > 0 {
+				for i, artist := range album.Artists {
+					if i > 0 {
+						<span>, </span>
+					}
+					<span>{ artist.Name }</span>
+				}
+			}
+		</td>
+		<td>
+			<div class="flex gap-3 items-center">
+				@formatIcon(album.Releases, models.ReleaseFormatDigital)
+				@formatIcon(album.Releases, models.ReleaseFormatVinyl)
+				@formatIcon(album.Releases, models.ReleaseFormatCD)
+				@formatIcon(album.Releases, models.ReleaseFormatCassette)
+			</div>
+		</td>
+		<td>
+			if oldest := oldestReleaseDate(album.Releases); oldest != nil {
+				<span class="text-sm">{ oldest.Format("Jan 2, 2006") }</span>
+			}
+		</td>
+	</tr>
+}
+
+templ AlbumsTable(albums []library.AlbumDTO) {
+	<div class="w-full px-6 py-6">
+		<div class="w-full">
+			<table class="table table-zebra w-full table-fixed">
+				<colgroup>
+					<col style="width: 35%"/>
+					<col style="width: 35%"/>
+					<col style="width: 18%"/>
+					<col style="width: 12%"/>
+				</colgroup>
+				<thead>
+					<tr>
+						<th>Album</th>
+						<th>Artists</th>
+						<th>Formats</th>
+						<th>Date Added</th>
+					</tr>
+				</thead>
+				<tbody>
+					if len(albums) == 0 {
+						<tr>
+							<td colspan="4" class="text-center opacity-50">No albums in your library</td>
+						</tr>
+					} else {
+						for _, album := range albums {
+							@albumRow(album)
+						}
+					}
+				</tbody>
+			</table>
+		</div>
+	</div>
+}
+
 templ LibraryStats(lib *library.Library) {
 	if lib != nil {
-		<div class="w-full bg-base-200 border-b border-base-300">
+		<div class="w-full bg-base-200 border-b border-base-300 flex-shrink-0">
 			<div class="px-6">
 				<div class="stats stats-horizontal shadow-sm w-full">
 					<div class="stat py-2">
@@ -147,7 +270,7 @@ templ LibraryStats(lib *library.Library) {
 }
 
 templ DashboardHeaderBar(feeds []feed.FeedDTO) {
-	<div class="bg-base-100 border-b border-base-300 h-11 w-full" hx-boost="true">
+	<div class="bg-base-100 border-b border-base-300 h-11 w-full flex-shrink-0" hx-boost="true">
 		<div class="h-full flex items-center justify-between px-6">
 			<div class="flex items-center gap-4">
 				<a class="text-lg font-brand hover:opacity-70 transition-opacity" href="/home">shmoopicks</a>
@@ -197,10 +320,14 @@ templ DashboardPage(props DashboardPageProps) {
 	@templates.RootComponent(templates.RootProps{
 		Title: templates.CreatePageTitle("Dashboard"),
 	}) {
-		@DashboardHeaderBar(props.Feeds)
-		@LibraryStats(props.Library)
-		<div class="p-6">
-			// Dashboard content goes here
+		<div class="h-screen w-full flex flex-col overflow-hidden">
+			@DashboardHeaderBar(props.Feeds)
+			@LibraryStats(props.Library)
+			<div class="flex-1 overflow-y-auto">
+				if props.Library != nil {
+					@AlbumsTable(props.Library.Albums)
+				}
+			</div>
 		</div>
 	}
 }

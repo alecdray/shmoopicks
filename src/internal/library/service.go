@@ -304,10 +304,11 @@ func (s *Service) AddAlbumsToLibrary(ctx context.Context, userId string, albums 
 				}
 
 				// insert user_releases
-				userRelease, err := tx.Queries().GetOrCreateUserRelease(ctx, sqlc.GetOrCreateUserReleaseParams{
+				userRelease, err := tx.Queries().UpsertUserRelease(ctx, sqlc.UpsertUserReleaseParams{
 					ID:        uuid.New().String(),
 					UserID:    userId,
 					ReleaseID: releaseModel.ID,
+					AddedAt:   *release.AddedAt,
 				})
 				if err != nil {
 					err = fmt.Errorf("failed to get/create user release: %w", err)

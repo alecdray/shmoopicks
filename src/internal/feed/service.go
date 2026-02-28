@@ -147,6 +147,14 @@ func (s *Service) syncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) error {
 
 	albumsToSync := make([]library.AlbumDTO, len(savedAlbums))
 	for i, album := range savedAlbums {
+		var addedAt *time.Time = nil
+		_addedAt, err := time.Parse(time.RFC3339, album.AddedAt)
+		if err != nil {
+			slog.Error("failed to parse added at time during syncSpotifyFeed", err)
+		} else {
+			addedAt = &_addedAt
+		}
+
 		lib := library.AlbumDTO{
 			ID:        uuid.NewString(),
 			SpotifyID: album.ID.String(),
@@ -155,8 +163,9 @@ func (s *Service) syncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) error {
 			Tracks:    []library.TrackDTO{},
 			Releases: []library.ReleaseDTO{
 				{
-					ID:     uuid.NewString(),
-					Format: models.ReleaseFormatDigital,
+					ID:      uuid.NewString(),
+					Format:  models.ReleaseFormatDigital,
+					AddedAt: addedAt,
 				},
 			},
 		}

@@ -7,33 +7,8 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
-
-const getOrCreateUserRelease = `-- name: GetOrCreateUserRelease :one
-INSERT INTO user_releases (id, user_id, release_id) VALUES (?, ?, ?)
-ON CONFLICT (user_id, release_id)
-DO UPDATE SET user_id = user_id
-RETURNING id, user_id, release_id, added_at, deleted_at
-`
-
-type GetOrCreateUserReleaseParams struct {
-	ID        string
-	UserID    string
-	ReleaseID string
-}
-
-func (q *Queries) GetOrCreateUserRelease(ctx context.Context, arg GetOrCreateUserReleaseParams) (UserRelease, error) {
-	row := q.db.QueryRowContext(ctx, getOrCreateUserRelease, arg.ID, arg.UserID, arg.ReleaseID)
-	var i UserRelease
-	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.ReleaseID,
-		&i.AddedAt,
-		&i.DeletedAt,
-	)
-	return i, err
-}
 
 const getUserReleases = `-- name: GetUserReleases :many
 SELECT user_releases.id, user_releases.user_id, user_releases.release_id, user_releases.added_at, user_releases.deleted_at, releases.id, releases.album_id, releases.format, releases.created_at, releases.deleted_at FROM user_releases
@@ -78,4 +53,36 @@ func (q *Queries) GetUserReleases(ctx context.Context, userID string) ([]GetUser
 		return nil, err
 	}
 	return items, nil
+}
+
+const upsertUserRelease = `-- name: UpsertUserRelease :one
+INSERT INTO user_releases (id, user_id, release_id, added_at) VALUES (?, ?, ?, ?)
+ON CONFLICT (user_id, release_id)
+DO UPDATE SET added_at = COALESCE(EXCLUDED.added_at, added_at)
+RETURNING id, user_id, release_id, added_at, deleted_at
+`
+
+type UpsertUserReleaseParams struct {
+	ID        string
+	UserID    string
+	ReleaseID string
+	AddedAt   time.Time
+}
+
+func (q *Queries) UpsertUserRelease(ctx context.Context, arg UpsertUserReleaseParams) (UserRelease, error) {
+	row := q.db.QueryRowContext(ctx, upsertUserRelease,
+		arg.ID,
+		arg.UserID,
+		arg.ReleaseID,
+		arg.AddedAt,
+	)
+	var i UserRelease
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.ReleaseID,
+		&i.AddedAt,
+		&i.DeletedAt,
+	)
+	return i, err
 }

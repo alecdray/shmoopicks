@@ -1,7 +1,7 @@
--- name: GetOrCreateUserRelease :one
-INSERT INTO user_releases (id, user_id, release_id) VALUES (?, ?, ?)
+-- name: UpsertUserRelease :one
+INSERT INTO user_releases (id, user_id, release_id, added_at) VALUES (?, ?, ?, ?)
 ON CONFLICT (user_id, release_id)
-DO UPDATE SET user_id = user_id
+DO UPDATE SET added_at = COALESCE(EXCLUDED.added_at, added_at)
 RETURNING *;
 
 -- name: GetUserReleases :many

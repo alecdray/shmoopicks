@@ -70,6 +70,7 @@ func Start(ctx context.Context, app app.App) {
 
 	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService, libraryService)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
+	appMux.Handle("/app/dashboard/feeds-dropdown-content", httpx.HandlerFunc(dashboardHandler.GetFeedsDropdown))
 
 	// Not found handler, must be registered after all other handlers
 	rootMux.HandleFunc("/not-found", httpx.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -69,3 +69,27 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	})
 	dashboardPage.Render(r.Context(), w)
 }
+
+func (h *HttpHandler) GetFeedsDropdown(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.NewContextX(r.Context())
+
+	userId, err := ctx.UserId()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	feeds, err := h.feedService.GetUsersFeeds(ctx, userId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Render content first
+	contentComponent := feedsDropdownContent(feeds)
+	contentComponent.Render(r.Context(), w)
+
+	// Render button as OOB swap
+	buttonComponent := feedsDropdownButton(feeds, true)
+	buttonComponent.Render(r.Context(), w)
+}

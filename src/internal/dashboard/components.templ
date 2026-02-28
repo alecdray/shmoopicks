@@ -52,31 +52,47 @@ templ feedStatusTooltipContent(f feed.FeedDTO) {
 	</div>
 }
 
-templ feedStatusBadge(f feed.FeedDTO) {
+templ feedsDropdownButton(feeds []feed.FeedDTO, oob bool) {
 	<div
-		class={
-			"badge badge-sm gap-1.5",
-			templ.KV("badge-warning", f.IsUnsyned() || f.IsStale()),
-			templ.KV("badge-info", f.IsSyncing()),
-			templ.KV("badge-success", f.IsSynced() && !f.IsStale()),
-			templ.KV("badge-error", f.LastSyncStatus == models.FeedSyncStatusFailure),
+		id="feeds-dropdown-button"
+		tabindex="0"
+		role="button"
+		class="btn btn-ghost btn-xs gap-1.5"
+		if oob {
+			hx-swap-oob="true"
 		}
 	>
-		if f.IsUnsyned() {
-			@templates.WarningIcon(templates.IconProps{Style: templates.IconStyleOutline})
-		} else if f.IsSyncing() {
-			@templates.SpinnerIcon(templates.IconProps{})
-		} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
-			@templates.XMarkIcon(templates.IconProps{Style: templates.IconStyleOutline})
-		} else if f.IsSynced() {
-			@templates.CheckIcon(templates.IconProps{Style: templates.IconStyleOutline})
+		@templates.DatabaseIcon(templates.IconProps{})
+		<span class="text-xs">Feeds</span>
+		if len(feeds) > 0 {
+			<div
+				class={
+					"w-2 h-2 rounded-full",
+					templ.KV("bg-warning", hasIssues(feeds)),
+					templ.KV("bg-success", !hasIssues(feeds)),
+				}
+			></div>
 		}
-		<span class="text-xs">{ string(f.Kind) }</span>
+	</div>
+}
+
+templ feedsDropdown(feeds []feed.FeedDTO) {
+	<div class="dropdown dropdown-end">
+		@feedsDropdownButton(feeds, false)
+		<div tabindex="0" class="dropdown-content z-[1] card card-compact bg-base-100 shadow-xl border border-base-300 mt-1">
+			@feedsDropdownContent(feeds)
+		</div>
 	</div>
 }
 
 templ feedsDropdownContent(feeds []feed.FeedDTO) {
-	<div class="menu menu-compact w-56 p-2">
+	<div
+		id="feeds-dropdown-content"
+		class="menu menu-compact w-56 p-2"
+		hx-get="/app/dashboard/feeds-dropdown-content"
+		hx-trigger="every 10s"
+		hx-swap="outerHTML"
+	>
 		<div class="menu-title px-2 py-1">
 			<span class="text-xs font-semibold opacity-60">Feed Status</span>
 		</div>
@@ -284,24 +300,7 @@ templ DashboardHeaderBar(feeds []feed.FeedDTO) {
 				</div>
 			</div>
 			<div class="flex items-center gap-2">
-				<div class="dropdown dropdown-end">
-					<div tabindex="0" role="button" class="btn btn-ghost btn-xs gap-1.5">
-						@templates.DatabaseIcon(templates.IconProps{})
-						<span class="text-xs">Feeds</span>
-						if len(feeds) > 0 {
-							<div
-								class={
-									"w-2 h-2 rounded-full",
-									templ.KV("bg-warning", hasIssues(feeds)),
-									templ.KV("bg-success", !hasIssues(feeds)),
-								}
-							></div>
-						}
-					</div>
-					<div tabindex="0" class="dropdown-content z-[1] card card-compact bg-base-100 shadow-xl border border-base-300 mt-1">
-						@feedsDropdownContent(feeds)
-					</div>
-				</div>
+				@feedsDropdown(feeds)
 				<div class="h-4 w-px bg-base-300"></div>
 				<div class="dropdown dropdown-end">
 					<div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-circle">

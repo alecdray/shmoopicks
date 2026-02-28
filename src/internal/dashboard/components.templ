@@ -6,7 +6,6 @@ import (
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
-	"time"
 )
 
 type DashboardPageProps struct {
@@ -171,18 +170,6 @@ func hasFormat(releases []library.ReleaseDTO, format models.ReleaseFormat) *libr
 	return nil
 }
 
-func oldestReleaseDate(releases []library.ReleaseDTO) *time.Time {
-	var oldest *time.Time
-	for _, r := range releases {
-		if r.AddedAt != nil {
-			if oldest == nil || r.AddedAt.Before(*oldest) {
-				oldest = r.AddedAt
-			}
-		}
-	}
-	return oldest
-}
-
 templ formatIcon(releases []library.ReleaseDTO, format models.ReleaseFormat) {
 	if release := hasFormat(releases, format); release != nil && release.AddedAt != nil {
 		<div class="tooltip tooltip-top" data-tip={ string(format) + " - " + release.AddedAt.Format("Jan 2, 2006") }>
@@ -221,11 +208,23 @@ templ albumRow(album library.AlbumDTO) {
 			</div>
 		</td>
 		<td>
-			if oldest := oldestReleaseDate(album.Releases); oldest != nil {
+			if oldest := album.Releases.OldestAddedAtDate(); oldest != nil {
 				<span class="text-sm">{ oldest.Format("Jan 2, 2006") }</span>
 			}
 		</td>
 	</tr>
+}
+
+templ albumsTableBody(albums []library.AlbumDTO) {
+	if len(albums) == 0 {
+		<tr>
+			<td colspan="4" class="text-center opacity-50">No albums in your library</td>
+		</tr>
+	} else {
+		for _, album := range albums {
+			@albumRow(album)
+		}
+	}
 }
 
 templ AlbumsTable(albums []library.AlbumDTO) {
@@ -240,22 +239,56 @@ templ AlbumsTable(albums []library.AlbumDTO) {
 				</colgroup>
 				<thead>
 					<tr>
-						<th>Album</th>
-						<th>Artists</th>
+						<th class="cursor-pointer hover:bg-base-200">
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=album&dir=asc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block mr-1"
+							>↑</span>
+							<span>Album</span>
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=album&dir=desc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block ml-1"
+							>↓</span>
+						</th>
+						<th class="cursor-pointer hover:bg-base-200">
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=artist&dir=asc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block mr-1"
+							>↑</span>
+							<span>Artists</span>
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=artist&dir=desc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block ml-1"
+							>↓</span>
+						</th>
 						<th>Formats</th>
-						<th>Date Added</th>
+						<th class="cursor-pointer hover:bg-base-200">
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=date&dir=asc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block mr-1"
+							>↑</span>
+							<span>Date Added</span>
+							<span
+								hx-get="/app/dashboard/albums-table-body?sortBy=date&dir=desc"
+								hx-target="#albums-tbody"
+								hx-swap="innerHTML"
+								class="inline-block ml-1"
+							>↓</span>
+						</th>
 					</tr>
 				</thead>
-				<tbody>
-					if len(albums) == 0 {
-						<tr>
-							<td colspan="4" class="text-center opacity-50">No albums in your library</td>
-						</tr>
-					} else {
-						for _, album := range albums {
-							@albumRow(album)
-						}
-					}
+				<tbody id="albums-tbody">
+					@albumsTableBody(albums)
 				</tbody>
 			</table>
 		</div>

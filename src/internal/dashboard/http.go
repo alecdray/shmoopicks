@@ -70,6 +70,48 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	dashboardPage.Render(r.Context(), w)
 }
 
+func (h *HttpHandler) GetAlbumsTableBody(w http.ResponseWriter, r *http.Request) {
+	ctx := contextx.NewContextX(r.Context())
+
+	userId, err := ctx.UserId()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	library, err := h.libraryService.GetLibrary(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get library: %w", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if library == nil {
+		http.Error(w, "library not found", http.StatusNotFound)
+		return
+	}
+
+	albums := library.Albums
+	sortBy := r.URL.Query().Get("sortBy")
+	dir := r.URL.Query().Get("dir")
+
+	// Default to ascending if not specified
+	ascending := dir != "desc"
+
+	// Sort albums based on sortBy parameter
+	switch sortBy {
+	case "album":
+		albums.SortByTitle(ascending)
+	case "artist":
+		albums.SortByArtist(ascending)
+	case "date":
+		albums.SortByDate(ascending)
+	}
+
+	component := albumsTableBody(albums)
+	component.Render(r.Context(), w)
+}
+
 func (h *HttpHandler) GetFeedsDropdown(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.NewContextX(r.Context())
 

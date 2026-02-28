@@ -1478,6 +1478,12 @@
   .mt-1 {
     margin-top: calc(var(--spacing) * 1);
   }
+  .mr-1 {
+    margin-right: calc(var(--spacing) * 1);
+  }
+  .ml-1 {
+    margin-left: calc(var(--spacing) * 1);
+  }
   .status {
     @layer daisyui.l1.l2.l3 {
       display: inline-block;
@@ -1568,6 +1574,9 @@
   .flex {
     display: flex;
   }
+  .inline-block {
+    display: inline-block;
+  }
   .table {
     display: table;
   }
@@ -1647,6 +1656,9 @@
   }
   .cursor-default {
     cursor: default;
+  }
+  .cursor-pointer {
+    cursor: pointer;
   }
   .resize {
     resize: both;

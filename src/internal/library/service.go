@@ -6,6 +6,7 @@ import (
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/db/sqlc"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -30,6 +31,20 @@ func NewReleaseDTOFromModel(model sqlc.Release, userRelease *sqlc.UserRelease) R
 	}
 
 	return dto
+}
+
+type ReleaseDTOs []ReleaseDTO
+
+func (releases ReleaseDTOs) OldestAddedAtDate() *time.Time {
+	var oldest *time.Time
+	for _, r := range releases {
+		if r.AddedAt != nil {
+			if oldest == nil || r.AddedAt.Before(*oldest) {
+				oldest = r.AddedAt
+			}
+		}
+	}
+	return oldest
 }
 
 type TrackDTO struct {
@@ -70,7 +85,7 @@ type AlbumDTO struct {
 	Title     string
 	Artists   []ArtistDTO
 	Tracks    []TrackDTO
-	Releases  []ReleaseDTO
+	Releases  ReleaseDTOs
 }
 
 func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackDTO, releases []ReleaseDTO) AlbumDTO {
@@ -84,9 +99,58 @@ func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackD
 	}
 }
 
+type AlbumDTOs []AlbumDTO
+
+func (albums AlbumDTOs) SortByTitle(ascending bool) {
+	sort.Slice(albums, func(i, j int) bool {
+		if ascending {
+			return albums[i].Title < albums[j].Title
+		}
+		return albums[i].Title > albums[j].Title
+	})
+}
+
+func (albums AlbumDTOs) SortByArtist(ascending bool) {
+	sort.Slice(albums, func(i, j int) bool {
+		if len(albums[i].Artists) == 0 && len(albums[j].Artists) == 0 {
+			return false
+		}
+		if len(albums[i].Artists) == 0 {
+			return ascending
+		}
+		if len(albums[j].Artists) == 0 {
+			return !ascending
+		}
+		if ascending {
+			return albums[i].Artists[0].Name < albums[j].Artists[0].Name
+		}
+		return albums[i].Artists[0].Name > albums[j].Artists[0].Name
+	})
+}
+
+func (albums AlbumDTOs) SortByDate(ascending bool) {
+	sort.Slice(albums, func(i, j int) bool {
+		dateI := albums[i].Releases.OldestAddedAtDate()
+		dateJ := albums[j].Releases.OldestAddedAtDate()
+		if dateI == nil && dateJ == nil {
+			return false
+		}
+		if dateI == nil {
+			return ascending
+		}
+		if dateJ == nil {
+			return !ascending
+		}
+		if ascending {
+			return dateI.Before(*dateJ)
+		}
+		return dateI.After(*dateJ)
+	})
+}
+
 type Library struct {
 	OwnerUserID string
-	Albums      []AlbumDTO
+	Albums      AlbumDTOs
 	Artists     []ArtistDTO
 	Tracks      []TrackDTO
 }

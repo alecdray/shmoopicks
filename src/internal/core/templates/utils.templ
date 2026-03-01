@@ -1,0 +1,13 @@
+package templates
+
+import "fmt"
+
+templ Redirect(path string, delaySeconds int) {
+	<div
+		hx-get={ path }
+		hx-trigger={ fmt.Sprintf("load delay:%ds", delaySeconds) }
+		hx-target="body"
+		hx-swap="innerHTML"
+		hx-push-url="true"
+	></div>
+}

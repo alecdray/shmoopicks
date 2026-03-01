@@ -21,19 +21,25 @@ func ApplyMiddleware(handler HandlerFunc, middlewares ...Middleware) HandlerFunc
 }
 
 func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) Middleware {
+	errPrefix := "JWT middleware error:"
+
 	return func(next HandlerFunc) HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			ctx := contextx.NewContextX(r.Context())
 			a, err := ctx.App()
 			if err != nil {
-				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to get app: %w", err))
+				HandleErrorResponse(ctx, w, HandleErrorResponseProps{
+					Status: http.StatusInternalServerError,
+					Err:    fmt.Errorf("%s failed to get app: %w", errPrefix, err),
+				})
 				return
 			}
 
 			claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
 			if err != nil || (claims.SpotifyToken == nil && claims.UserID == nil) {
 				a.DeleteClaims(w)
-				HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("Invalid or expired token: %s", err.Error()))
+				err = fmt.Errorf("%s Invalid or expired token: %s", errPrefix, err.Error())
+				HandleUnauthorized(ctx, w, err)
 				return
 			}
 
@@ -44,14 +50,18 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 			// Add claims to request context
 			err = a.SetClaims(w, claims)
 			if err != nil {
-				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
+				HandleErrorResponse(ctx, w, HandleErrorResponseProps{
+					Status: http.StatusInternalServerError,
+					Err:    fmt.Errorf("%s failed to set JWT: %w", errPrefix, err),
+				})
 				return
 			}
 			ctx = ctx.WithApp(a)
 
 			user, err := userService.GetUserFromCtx(ctx)
 			if err != nil {
-				HandleErrorResponse(ctx, w, http.StatusUnauthorized, fmt.Errorf("failed to get user: %w", err))
+				err = fmt.Errorf("%s failed to get user: %w", errPrefix, err)
+				HandleUnauthorized(ctx, w, err)
 				return
 			}
 			ctx = ctx.WithUserId(user.ID)
@@ -59,7 +69,10 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 			claims.UserID = &user.ID
 			err = a.SetClaims(w, claims)
 			if err != nil {
-				HandleErrorResponse(ctx, w, http.StatusInternalServerError, fmt.Errorf("failed to set JWT: %w", err))
+				HandleErrorResponse(ctx, w, HandleErrorResponseProps{
+					Status: http.StatusInternalServerError,
+					Err:    fmt.Errorf("%s failed to set JWT: %w", errPrefix, err),
+				})
 				return
 			}
 			ctx = ctx.WithApp(a)

@@ -35,7 +35,10 @@ func (h *HttpHandler) GetLoginPage(w http.ResponseWriter, r *http.Request) {
 	a, err := ctx.App()
 	if err != nil {
 		err = fmt.Errorf("failed to get app: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
@@ -61,7 +64,10 @@ func (h *HttpHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	a, err := ctx.App()
 	if err != nil {
 		err = fmt.Errorf("failed to get app: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
@@ -74,41 +80,59 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 	a, err := ctx.App()
 	if err != nil {
 		err = fmt.Errorf("failed to get app: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
 	client, err := h.spotifyAuth.GetClientFromCallback(ctx, a.Config().StateCode, r)
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify client: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
 	token, err := client.Token()
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify token: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
 	spotifyUser, err := client.CurrentUser(ctx)
 	if err != nil {
 		err = fmt.Errorf("failed to get spotify user: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 	user, err := h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID)
 	if err != nil {
 		err = fmt.Errorf("failed to upsert spotify user: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
 	_, err = h.feedService.UpsertFeed(ctx, user.ID, models.FeedKindSpotify)
 	if err != nil {
 		err = fmt.Errorf("failed to upsert feed: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 
@@ -120,7 +144,10 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 	err = a.SetClaims(w, claims)
 	if err != nil {
 		err = fmt.Errorf("failed to update JWT with Spotify token: %w", err)
-		httpx.HandleErrorResponse(ctx, w, http.StatusInternalServerError, err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
 		return
 	}
 	ctx = ctx.WithApp(a)

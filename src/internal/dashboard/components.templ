@@ -39,7 +39,7 @@ templ feedsDropdownButton(feeds []feed.FeedDTO, oob bool) {
 		@templates.DatabaseIcon(templates.IconProps{})
 		<span class="text-xs">Feeds</span>
 		if len(feeds) > 0 {
-			@templates.NeonEffect(getFeedsDropdownButtonIndicatorColor(feeds), "rounded-full") {
+			@templates.NeonEffect(getFeedsDropdownButtonIndicatorColor(feeds), templates.NeonHoverEffectNone, "rounded-full") {
 				<div
 					class={ "w-2 h-2 rounded-full", }
 				></div>
@@ -273,8 +273,8 @@ templ DashboardHeaderBar(feeds []feed.FeedDTO) {
 	<div class="bg-base-100 border-b border-base-300 h-11 w-full flex-shrink-0" hx-boost="true">
 		<div class="h-full flex items-center justify-between px-6">
 			<div class="flex items-center gap-4">
-				@templates.NeonTextEffect("wax", templates.NeonColorPrimary) {
-					<a href="/home" class="text-lg font-brand tracking-widest">wax</a>
+				@templates.NeonTextEffect(templates.NeonColorPrimary, templates.NeonHoverEffectDim) {
+					<a href="/home" class="text-lg font-brand">wax</a>
 				}
 				<div class="h-4 w-px bg-base-300"></div>
 				<div class="flex items-center gap-1">

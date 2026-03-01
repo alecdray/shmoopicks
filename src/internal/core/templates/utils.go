@@ -9,5 +9,5 @@ func CreatePageTitle(title string) string {
 		title = "Home"
 	}
 
-	return fmt.Sprintf("%s | shmoopicks", title)
+	return fmt.Sprintf("%s | wax", title)
 }

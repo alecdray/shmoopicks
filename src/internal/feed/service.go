@@ -50,20 +50,8 @@ func NewFeedDTOFromModel(model sqlc.Feed) *FeedDTO {
 	return dto
 }
 
-func (f FeedDTO) IsUnsyned() bool {
-	return f.LastSyncStatus == models.FeedSyncStatusNone
-}
-
-func (f FeedDTO) IsSyncing() bool {
-	return f.LastSyncStatus == models.FeedSyncStatusPending
-}
-
-func (f FeedDTO) IsSynced() bool {
-	return f.LastSyncStatus == models.FeedSyncStatusSuccess
-}
-
-func (f FeedDTO) IsStale() bool {
-	if f.IsUnsyned() {
+func (f FeedDTO) IsSyncStale() bool {
+	if f.LastSyncStatus.IsUnsyned() {
 		return false
 	}
 	minStaleTime := time.Now().Add(-MinStaleDuration)

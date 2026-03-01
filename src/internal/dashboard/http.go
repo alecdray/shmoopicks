@@ -44,7 +44,7 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range feeds {
-		if f.Kind == models.FeedKindSpotify && !f.IsSynced() {
+		if f.Kind == models.FeedKindSpotify && !f.LastSyncStatus.IsSynced() {
 			go func(feed feed.FeedDTO) {
 				_, err := h.feedService.SyncSpotifyFeed(ctx, feed)
 				if err != nil {

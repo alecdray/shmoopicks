@@ -15,6 +15,22 @@ const (
 	FeedSyncStatusFailure FeedSyncStatus = "failure"
 )
 
+func (f FeedSyncStatus) IsUnsyned() bool {
+	return f == FeedSyncStatusNone
+}
+
+func (f FeedSyncStatus) IsSyncing() bool {
+	return f == FeedSyncStatusPending
+}
+
+func (f FeedSyncStatus) IsSynced() bool {
+	return f == FeedSyncStatusSuccess
+}
+
+func (f FeedSyncStatus) IsSyncFailed() bool {
+	return f == FeedSyncStatusFailure
+}
+
 type ReleaseFormat string
 
 const (

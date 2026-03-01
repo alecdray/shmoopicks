@@ -13,13 +13,17 @@ type DashboardPageProps struct {
 	Library *library.Library
 }
 
-func hasIssues(feeds []feed.FeedDTO) bool {
+func getFeedsDropdownButtonIndicatorColor(feeds []feed.FeedDTO) templates.NeonColor {
+	color := templates.NeonColorSuccess
 	for _, f := range feeds {
-		if f.IsUnsyned() || f.IsStale() || f.LastSyncStatus == models.FeedSyncStatusFailure {
-			return true
+		if f.LastSyncStatus.IsSyncFailed() {
+			color = templates.NeonColorError
+			break
+		} else if f.LastSyncStatus.IsUnsyned() || f.IsSyncStale() {
+			color = templates.NeonColorWarning
 		}
 	}
-	return false
+	return color
 }
 
 templ feedsDropdownButton(feeds []feed.FeedDTO, oob bool) {
@@ -35,13 +39,11 @@ templ feedsDropdownButton(feeds []feed.FeedDTO, oob bool) {
 		@templates.DatabaseIcon(templates.IconProps{})
 		<span class="text-xs">Feeds</span>
 		if len(feeds) > 0 {
-			<div
-				class={
-					"w-2 h-2 rounded-full",
-					templ.KV("bg-warning", hasIssues(feeds)),
-					templ.KV("bg-success", !hasIssues(feeds)),
-				}
-			></div>
+			@templates.NeonEffect(getFeedsDropdownButtonIndicatorColor(feeds), "rounded-full") {
+				<div
+					class={ "w-2 h-2 rounded-full", }
+				></div>
+			}
 		}
 	</div>
 }
@@ -60,7 +62,7 @@ templ feedsDropdownContent(feeds []feed.FeedDTO) {
 		id="feeds-dropdown-content"
 		class="menu menu-compact w-56 p-2"
 		hx-get="/app/dashboard/feeds-dropdown-content"
-		hx-trigger="every 10s"
+		hx-trigger="every 30s"
 		hx-swap="outerHTML"
 	>
 		<div class="menu-title px-2 py-1">
@@ -72,11 +74,11 @@ templ feedsDropdownContent(feeds []feed.FeedDTO) {
 			for _, f := range feeds {
 				<div class="flex items-center justify-between px-2 py-2 hover:bg-base-200 rounded-lg">
 					<div class="flex items-center gap-2">
-						if f.IsUnsyned() {
+						if f.LastSyncStatus.IsUnsyned() {
 							<div class="text-warning">
 								@templates.WarningIcon(templates.IconProps{Style: templates.IconStyleOutline})
 							</div>
-						} else if f.IsSyncing() {
+						} else if f.LastSyncStatus.IsSyncing() {
 							<div class="text-info">
 								@templates.SpinnerIcon(templates.IconProps{})
 							</div>
@@ -84,24 +86,24 @@ templ feedsDropdownContent(feeds []feed.FeedDTO) {
 							<div class="text-error">
 								@templates.XMarkIcon(templates.IconProps{Style: templates.IconStyleOutline})
 							</div>
-						} else if f.IsSynced() {
-							<div class={ templ.KV("text-success", !f.IsStale()), templ.KV("text-warning", f.IsStale()) }>
+						} else if f.LastSyncStatus.IsSynced() {
+							<div class={ templ.KV("text-success", !f.IsSyncStale()), templ.KV("text-warning", f.IsSyncStale()) }>
 								@templates.CheckIcon(templates.IconProps{Style: templates.IconStyleOutline})
 							</div>
 						}
 						<span class="text-sm font-medium">{ string(f.Kind) }</span>
 					</div>
 					<div class="text-xs opacity-60">
-						if f.IsUnsyned() {
+						if f.LastSyncStatus.IsUnsyned() {
 							Never synced
-						} else if f.IsSyncing() {
+						} else if f.LastSyncStatus.IsSyncing() {
 							Syncing...
 						} else if f.LastSyncStatus == models.FeedSyncStatusFailure {
 							Failed
-						} else if f.IsStale() {
+						} else if f.IsSyncStale() {
 							Stale
 						} else {
-							OK
+							Synced
 						}
 					</div>
 				</div>
@@ -271,7 +273,9 @@ templ DashboardHeaderBar(feeds []feed.FeedDTO) {
 	<div class="bg-base-100 border-b border-base-300 h-11 w-full flex-shrink-0" hx-boost="true">
 		<div class="h-full flex items-center justify-between px-6">
 			<div class="flex items-center gap-4">
-				<a class="text-lg font-brand hover:opacity-70 transition-opacity" href="/home">shmoopicks</a>
+				@templates.NeonTextEffect("wax", templates.NeonColorPrimary) {
+					<a href="/home" class="text-lg font-brand tracking-widest">wax</a>
+				}
 				<div class="h-4 w-px bg-base-300"></div>
 				<div class="flex items-center gap-1">
 					<div class="tooltip tooltip-bottom" data-tip="Home">

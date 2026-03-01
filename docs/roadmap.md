@@ -4,7 +4,7 @@
 
 - [ ] [My Library] v1
 
-## Backlog
+## Queue
 
 - [ ] [Listening history] v1
 - [ ] [Rankings and reviews] v1

@@ -1,6 +1,6 @@
 # Stats & Insights
 
-# Notes
+## Notes
 
 - library, listening history, albums ratings, ranklists, shelves
 - listening heatmap (GitHub-style grid showing listening activity by day/month)

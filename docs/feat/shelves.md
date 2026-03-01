@@ -1,5 +1,5 @@
 # Shelves
 
-# Notes
+## Notes
 
 organize albums into custom categories

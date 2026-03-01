@@ -14,12 +14,18 @@
 - [ ] [Stats and insights] v1
 - [ ] [Notifications] v1
 - [ ] [Wishlist] v1
+- [ ] [Sleeve Notes] v1
+- [ ] [Linked Albums] v1
 - [ ] [My Library] v1.1
 
-# Notes
+## Notes
 
 - Consider features that allow for a deeper more intimate relationship with music (e.g. sleeve notes, influences, mood association, attach articles, shared by/shared with)
 - Could be interesting to expand towards a good reads style social network, but this should be secondary to the core functionality of the app.
+
+
+
+<!--Refs-->
 
 [Listening history]: ./feat/listening-history.md
 [Rankings and reviews]: ./feat/ranking-review.md
@@ -30,3 +36,5 @@
 [Notifications]: ./feat/notifications.md
 [Wishlist]: ./feat/wishlist.md
 [My Library]: ./feat/my-library.md
+[Sleeve Notes]: ./feat/sleeve-notes.md
+[Linked Albums]: ./feat/linked-albums.md

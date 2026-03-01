@@ -1,9 +1,9 @@
 # Listening History
 
-# Notes
+## Notes
 
 This feature is hamstrung by the fact that Spotify only gives last 50 played tracks.
 
-# v1
+## v1
 
 TBD

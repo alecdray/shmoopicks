@@ -1,5 +1,5 @@
 # Ranklists
 
-# Notes
+## Notes
 
 create ranked lists of albums

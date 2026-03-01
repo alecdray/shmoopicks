@@ -152,14 +152,24 @@ templ formatIcon(releases library.ReleaseDTOs, format models.ReleaseFormat) {
 
 templ albumRow(album library.AlbumDTO) {
 	<tr class="hover:bg-base-300 transition-colors duration-150">
-		<td class="font-medium">{ album.Title }</td>
+		<td class="font-medium">
+			<a
+				href={ fmt.Sprintf("https://open.spotify.com/album/%s", album.SpotifyID) }
+				target="_blank"
+				rel="noopener noreferrer"
+			>{ album.Title }</a>
+		</td>
 		<td>
 			if len(album.Artists) > 0 {
 				for i, artist := range album.Artists {
 					if i > 0 {
 						<span>, </span>
 					}
-					<span>{ artist.Name }</span>
+					<a
+						href={ fmt.Sprintf("https://open.spotify.com/artist/%s", artist.SpotifyID) }
+						target="_blank"
+						rel="noopener noreferrer"
+					>{ artist.Name }</a>
 				}
 			}
 		</td>

@@ -2,20 +2,31 @@
 
 ## On Deck
 
-- [ ] My Library
+- [ ] [My Library] v1
 
 ## Backlog
 
-- [ ] Listening history
-- [ ] Ranking and review system
-- [ ] Tagging system
-- [ ] Ranklists - create ranked lists of albums
-- [ ] Shelves - organize albums into custom categories
-- [ ] Metrics - library, listening history, albums ratings, ranklists, shelves
-- [ ] Notifications - receive updates on new releases, album updates, concert announcements, and more
-- [ ] Wishlist - add albums to a wishlist for future purchases
+- [ ] [Listening history] v1
+- [ ] [Rankings and reviews] v1
+- [ ] [Tagging] v1
+- [ ] [Ranklists] v1
+- [ ] [Shelves] v1
+- [ ] [Stats and insights] v1
+- [ ] [Notifications] v1
+- [ ] [Wishlist] v1
+- [ ] [My Library] v1.1
 
 # Notes
 
 - Consider features that allow for a deeper more intimate relationship with music (e.g. sleeve notes, influences, mood association, attach articles, shared by/shared with)
 - Could be interesting to expand towards a good reads style social network, but this should be secondary to the core functionality of the app.
+
+[Listening history]: ./feat/listening-history.md
+[Rankings and reviews]: ./feat/ranking-review.md
+[Tagging]: ./feat/tagging.md
+[Ranklists]: ./feat/ranklists.md
+[Shelves]: ./feat/shelves.md
+[Stats and insights]: ./feat/stats-insights.md
+[Notifications]: ./feat/notifications.md
+[Wishlist]: ./feat/wishlist.md
+[My Library]: ./feat/my-library.md

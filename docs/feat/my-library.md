@@ -2,6 +2,37 @@
 
 A users library is their collection of music, this should include both digital and physical media.
 
+# Notes
+
+Album details view:
+- Basic album info
+  - tracks (length, artists, etc.)
+  - album art
+  - release date
+  - genre
+  - label
+- Your personal info
+  - [review](/docs/feat/ranking-review.md)
+  - listening history
+  - tags
+  - linked albums in your collection (set by you not algo)
+  - notes
+- External info
+  - sources
+    - wikipedia
+    - pitchfork
+    - google
+    - npr
+    - youtube
+    - ...
+  - ratings
+  - history
+  - interviews
+  - influences
+  - live shows
+  - videos
+
+
 # v1
 
 - Library should have the following entities:
@@ -15,9 +46,10 @@ A users library is their collection of music, this should include both digital a
 - [ ] Library should be synced on a regular basis
 - [ ] Physical media should be manually added to the library.
 
-# v1.1
+# vN
 
 - [ ] Users should be able to view their library in multiple ways
   - [ ] Grid view
   - [ ] List view
   - [ ] Shelf view
+- [ ] Faceted search

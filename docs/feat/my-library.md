@@ -12,12 +12,12 @@ Album details view:
   - genre
   - label
 - Your personal info
-  - [review](/docs/feat/ranking-review.md)
-  - [listening history](/docs/feat/listening-history.md)
-  - [tags](/docs/feat/tagging.md)
-  - [linked albums](/docs/feat/linked-albums.md)
-  - [stats/insights](/docs/feat/stats-insights.md)
-  - [sleeve notes](/docs/feat/sleeve-notes.md)
+  - [review](./ranking-review.md)
+  - [listening history](./listening-history.md)
+  - [tags](./tagging.md)
+  - [linked albums](./linked-albums.md)
+  - [stats/insights](./stats-insights.md)
+  - [sleeve notes](./sleeve-notes.md)
 - External info
   - sources
     - wikipedia

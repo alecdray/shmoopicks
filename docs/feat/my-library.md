@@ -45,10 +45,10 @@ Album details view:
 - [x] User should be able to view their library
 - [x] Users should be able to open music in Spotify from the library
 - [x] Library should be synced on a regular basis
-- [ ] Physical media should be manually added to the library.
 
 ## vN
 
+- [ ] Physical media should be manually added to the library.
 - [ ] Users should be able to view their library in multiple ways
   - [ ] Grid view
   - [ ] List view

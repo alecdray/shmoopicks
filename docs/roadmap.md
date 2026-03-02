@@ -2,12 +2,11 @@
 
 ## On Deck
 
-- [ ] [My Library] v1
+- [ ] [Rankings and reviews] v1
 
 ## Queue
 
 - [ ] [Listening history] v1
-- [ ] [Rankings and reviews] v1
 - [ ] [Tagging] v1
 - [ ] [Ranklists] v1
 - [ ] [Shelves] v1
@@ -17,6 +16,10 @@
 - [ ] [Sleeve Notes] v1
 - [ ] [Linked Albums] v1
 - [ ] [My Library] v1.1
+
+## Spun
+
+- [x] [My Library] v1
 
 ## Notes
 

@@ -8,6 +8,28 @@ import (
 	"github.com/joho/godotenv"
 )
 
+type Env string
+
+const (
+	EnvUnknown Env = "unknown"
+	EnvLocal   Env = "local"
+	EnvDev     Env = "dev"
+	EnvProd    Env = "prod"
+)
+
+func NewEnv(env string) Env {
+	switch env {
+	case "local":
+		return EnvLocal
+	case "dev":
+		return EnvDev
+	case "prod":
+		return EnvProd
+	default:
+		return EnvUnknown
+	}
+}
+
 func init() {
 	err := godotenv.Load()
 	if err != nil {
@@ -16,9 +38,11 @@ func init() {
 }
 
 type Config struct {
+	Env                 Env
 	Port                string
 	DbPath              string
 	JwtSecret           string
+	SpotifyTokenSecret  string
 	Host                string
 	StateCode           string
 	SpotifyClientId     string
@@ -29,30 +53,45 @@ type Config struct {
 }
 
 func LoadConfig() *Config {
-	port := GetEnvOrDefault("PORT", "8080")
-	host := GetEnvOrDefault("Host", fmt.Sprintf("http://127.0.0.1:%s", port))
+	env := NewEnv(GetEnvWithPanic("ENV"))
+	port := GetEnvWithDefault("PORT", "8080")
+	host := GetEnvWithConditionalPanic("Host", fmt.Sprintf("http://127.0.0.1:%s", port), env != EnvLocal)
+
 	return &Config{
+		Env:                 env,
 		Port:                port,
-		DbPath:              GetEnvOrDefault("DB_PATH", "./tmp/db.sql"),
-		JwtSecret:           GetEnvOrDefault("JWT_SECRET", "secret"),
+		DbPath:              GetEnvWithDefault("DB_PATH", "./tmp/db.sql"),
+		JwtSecret:           GetEnvWithConditionalPanic("JWT_SECRET", "secret", env != EnvLocal),
+		SpotifyTokenSecret:  GetEnvWithConditionalPanic("SPOTIFY_TOKEN_SECRET", "f9726448847c4509f42a7e7dd3ea24e399f7fb57f3c9def4b4486ebe9f659b47", env != EnvLocal),
 		Host:                host,
-		StateCode:           GetEnvOrDefault("STATE_CODE", "state"),
-		SpotifyClientId:     GetEnvOrDefault("SPOTIFY_ID", ""),
-		SpotifyClientSecret: GetEnvOrDefault("SPOTIFY_SECRET", ""),
-		AppName:             GetEnvOrDefault("APP_NAME", "shmoopicks"),
-		AppVersion:          GetEnvOrDefault("APP_VERSION", "0.0.0"),
-		ContactEmail:        GetEnvOrDefault("CONTACT_EMAIL", "support@shmoopicks.com"),
+		StateCode:           GetEnvWithDefault("STATE_CODE", "state"),
+		SpotifyClientId:     GetEnvWithPanic("SPOTIFY_ID"),
+		SpotifyClientSecret: GetEnvWithPanic("SPOTIFY_SECRET"),
+		AppName:             GetEnvWithDefault("APP_NAME", "wax"),
+		AppVersion:          GetEnvWithDefault("APP_VERSION", "0.0.0"),
+		ContactEmail:        GetEnvWithDefault("CONTACT_EMAIL", "support@wax.com"),
 	}
 }
 
-func (config *Config) ValidateConfig() error {
-	return nil
+func GetEnvWithPanic(key string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		panic(fmt.Sprintf("environment variable %s not set", key))
+	}
+	return value
 }
 
-func GetEnvOrDefault(key, defaultValue string) string {
+func GetEnvWithDefault(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		return defaultValue
 	}
 	return value
+}
+
+func GetEnvWithConditionalPanic(key, defaultValue string, condition bool) string {
+	if condition {
+		return GetEnvWithPanic(key)
+	}
+	return GetEnvWithDefault(key, defaultValue)
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"os"
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/server"
 )
@@ -13,9 +14,10 @@ func main() {
 
 	config := app.LoadConfig()
 
-	if err := config.ValidateConfig(); err != nil {
-		slog.Error("Error validating config", "error", err)
-		return
+	if config.Env == app.EnvLocal {
+		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		})))
 	}
 
 	server.Start(ctx, app.NewApp(*config))

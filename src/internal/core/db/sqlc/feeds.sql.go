@@ -75,14 +75,20 @@ func (q *Queries) GetFeedsByUserId(ctx context.Context, userID string) ([]Feed, 
 
 const getStaleFeedsBatch = `-- name: GetStaleFeedsBatch :many
 SELECT id, user_id, kind, created_at, last_sync_completed_at, last_sync_started_at, last_sync_status FROM feeds
-WHERE last_synced_at < datetime('now', ?)
-OR last_synced_at IS NULL
-ORDER BY last_synced_at ASC
+WHERE last_sync_completed_at IS NOT NULL
+AND last_sync_completed_at < datetime('now', ?)
+AND kind = ?
+ORDER BY last_sync_completed_at ASC
 LIMIT 10
 `
 
-func (q *Queries) GetStaleFeedsBatch(ctx context.Context, datetime interface{}) ([]Feed, error) {
-	rows, err := q.db.QueryContext(ctx, getStaleFeedsBatch, datetime)
+type GetStaleFeedsBatchParams struct {
+	Datetime interface{}
+	Kind     models.FeedKind
+}
+
+func (q *Queries) GetStaleFeedsBatch(ctx context.Context, arg GetStaleFeedsBatchParams) ([]Feed, error) {
+	rows, err := q.db.QueryContext(ctx, getStaleFeedsBatch, arg.Datetime, arg.Kind)
 	if err != nil {
 		return nil, err
 	}

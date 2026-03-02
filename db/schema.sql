@@ -10,7 +10,7 @@ CREATE TABLE users (
     spotify_id text not null unique,
     created_at datetime not null default current_timestamp,
     deleted_at datetime
-);
+, spotify_refresh_token text);
 CREATE TABLE artists (
     id text primary key,
     spotify_id text not null unique,

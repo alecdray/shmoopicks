@@ -7,11 +7,12 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (id, spotify_id) VALUES (?, ?)
-RETURNING id, spotify_id, created_at, deleted_at
+RETURNING id, spotify_id, created_at, deleted_at, spotify_refresh_token
 `
 
 type CreateUserParams struct {
@@ -27,12 +28,13 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.SpotifyID,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.SpotifyRefreshToken,
 	)
 	return i, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, spotify_id, created_at, deleted_at FROM users WHERE id = ?
+SELECT id, spotify_id, created_at, deleted_at, spotify_refresh_token FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -43,12 +45,13 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.SpotifyID,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.SpotifyRefreshToken,
 	)
 	return i, err
 }
 
 const getUserBySpotifyId = `-- name: GetUserBySpotifyId :one
-SELECT id, spotify_id, created_at, deleted_at FROM users WHERE spotify_id = ?
+SELECT id, spotify_id, created_at, deleted_at, spotify_refresh_token FROM users WHERE spotify_id = ?
 `
 
 func (q *Queries) GetUserBySpotifyId(ctx context.Context, spotifyID string) (User, error) {
@@ -59,30 +62,33 @@ func (q *Queries) GetUserBySpotifyId(ctx context.Context, spotifyID string) (Use
 		&i.SpotifyID,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.SpotifyRefreshToken,
 	)
 	return i, err
 }
 
 const upsertSpotifyUser = `-- name: UpsertSpotifyUser :one
-INSERT INTO users (id, spotify_id) VALUES (?, ?)
+INSERT INTO users (id, spotify_id, spotify_refresh_token) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
-DO UPDATE SET spotify_id = EXCLUDED.spotify_id
-RETURNING id, spotify_id, created_at, deleted_at
+DO UPDATE SET spotify_id = EXCLUDED.spotify_id, spotify_refresh_token = coalesce(EXCLUDED.spotify_refresh_token, spotify_refresh_token)
+RETURNING id, spotify_id, created_at, deleted_at, spotify_refresh_token
 `
 
 type UpsertSpotifyUserParams struct {
-	ID        string
-	SpotifyID string
+	ID                  string
+	SpotifyID           string
+	SpotifyRefreshToken sql.NullString
 }
 
 func (q *Queries) UpsertSpotifyUser(ctx context.Context, arg UpsertSpotifyUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, upsertSpotifyUser, arg.ID, arg.SpotifyID)
+	row := q.db.QueryRowContext(ctx, upsertSpotifyUser, arg.ID, arg.SpotifyID, arg.SpotifyRefreshToken)
 	var i User
 	err := row.Scan(
 		&i.ID,
 		&i.SpotifyID,
 		&i.CreatedAt,
 		&i.DeletedAt,
+		&i.SpotifyRefreshToken,
 	)
 	return i, err
 }

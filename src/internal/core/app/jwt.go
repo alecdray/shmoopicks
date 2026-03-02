@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/oauth2"
 )
 
 const (
@@ -18,8 +17,7 @@ const (
 // Claims struct to encode in JWT
 type Claims struct {
 	jwt.RegisteredClaims
-	SpotifyToken *oauth2.Token `json:"spotify_token"`
-	UserID       *string       `json:"user_id"`
+	UserID *string `json:"user_id"`
 }
 
 func NewClaims() *Claims {

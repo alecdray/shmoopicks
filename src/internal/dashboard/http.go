@@ -2,10 +2,10 @@ package dashboard
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/db/models"
+	"shmoopicks/src/internal/core/task"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
 	"shmoopicks/src/internal/musicbrainz"
@@ -17,14 +17,16 @@ type HttpHandler struct {
 	mb             *musicbrainz.Service
 	feedService    *feed.Service
 	libraryService *library.Service
+	taskManager    *task.TaskManager
 }
 
-func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service, libraryService *library.Service) *HttpHandler {
+func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service, libraryService *library.Service, taskManager *task.TaskManager) *HttpHandler {
 	return &HttpHandler{
 		spotifyAuth:    spotifyAuth,
 		mb:             mb,
 		feedService:    feedService,
 		libraryService: libraryService,
+		taskManager:    taskManager,
 	}
 }
 
@@ -44,13 +46,8 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, f := range feeds {
-		if f.Kind == models.FeedKindSpotify && !f.LastSyncStatus.IsSynced() {
-			go func(feed feed.FeedDTO) {
-				_, err := h.feedService.SyncSpotifyFeed(ctx, feed)
-				if err != nil {
-					slog.Error("failed to sync spotify feed", "error", err)
-				}
-			}(f)
+		if f.Kind == models.FeedKindSpotify && f.LastSyncStatus.IsUnsyned() {
+			h.taskManager.RegisterAdHocTask(feed.NewSyncSpotifyFeedTask(h.feedService, f))
 		}
 	}
 

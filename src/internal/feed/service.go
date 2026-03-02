@@ -60,7 +60,6 @@ func (f FeedDTO) IsSyncStale() bool {
 
 func (f *FeedDTO) SetSyncFailed() {
 	f.LastSyncStatus = models.FeedSyncStatusFailure
-	f.LastSyncCompletedAt = utils.NewPointer(time.Now())
 }
 
 func (f *FeedDTO) SetSyncSuccess() {
@@ -126,11 +125,21 @@ func (s *Service) UpdateFeed(ctx context.Context, feed FeedDTO) (*FeedDTO, error
 	return NewFeedDTOFromModel(feedModel), nil
 }
 
-func (s *Service) syncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) error {
-	savedAlbums, err := s.spotifyService.GetUsersSavedAlbums(ctx)
-	if err != nil {
-		err = fmt.Errorf("failed to get user saved albums: %w", err)
-		return err
+func (s *Service) syncAlbumsToLibrary(ctx contextx.ContextX, feed FeedDTO, syncWindow *time.Duration) error {
+	var savedAlbums []spotify.SavedAlbum
+	var err error
+	if syncWindow == nil {
+		savedAlbums, err = s.spotifyService.GetUsersSavedAlbums(ctx, feed.UserID)
+		if err != nil {
+			err = fmt.Errorf("failed to get user saved albums: %w", err)
+			return err
+		}
+	} else {
+		savedAlbums, err = s.spotifyService.GetRecentlySavedAlbums(ctx, feed.UserID, *syncWindow)
+		if err != nil {
+			err = fmt.Errorf("failed to get user saved albums: %w", err)
+			return err
+		}
 	}
 
 	albumsToSync := make([]library.AlbumDTO, len(savedAlbums))
@@ -191,6 +200,15 @@ func (s *Service) SyncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) (*FeedDTO
 		return nil, fmt.Errorf("feed kind must be spotify")
 	}
 
+	var syncWindow *time.Duration
+	if feed.LastSyncCompletedAt != nil {
+		lastSyncedAtPlusBuffer := (*feed.LastSyncCompletedAt).Add(-time.Hour)
+		timeSinceLastSync := time.Now().Sub(lastSyncedAtPlusBuffer)
+		syncWindow = &timeSinceLastSync
+	} else {
+		syncWindow = nil
+	}
+
 	feed.SetSyncing()
 	_, err := s.UpdateFeed(ctx, feed)
 	if err != nil {
@@ -198,14 +216,14 @@ func (s *Service) SyncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) (*FeedDTO
 		return nil, err
 	}
 
-	err = s.syncSpotifyFeed(ctx, feed)
+	err = s.syncAlbumsToLibrary(ctx, feed, syncWindow)
 	if err != nil {
-		err = fmt.Errorf("failed to sync spotify feed: %w", err)
+		err = fmt.Errorf("failed to sync albums to library: %w", err)
 
 		feed.SetSyncFailed()
-		_, err := s.UpdateFeed(ctx, feed)
-		if err != nil {
-			slog.Error("failed to update feed on sync error", "error", err)
+		_, updateErr := s.UpdateFeed(ctx, feed)
+		if updateErr != nil {
+			slog.Error("failed to update feed on sync error", "error", updateErr)
 		}
 
 		return nil, err
@@ -219,4 +237,24 @@ func (s *Service) SyncSpotifyFeed(ctx contextx.ContextX, feed FeedDTO) (*FeedDTO
 	}
 
 	return &feed, nil
+}
+
+func (s *Service) GetStaleSpotifyFeeds(ctx context.Context) ([]FeedDTO, error) {
+	feeds, err := s.db.Queries().GetStaleFeedsBatch(ctx, sqlc.GetStaleFeedsBatchParams{
+		Datetime: sqlx.DurationToSQLiteDatetime(MinStaleDuration),
+		Kind:     models.FeedKindSpotify,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	staleFeeds := make([]FeedDTO, 0, len(feeds))
+	for _, f := range feeds {
+		feed := NewFeedDTOFromModel(f)
+		if feed.Kind == models.FeedKindSpotify && feed.IsSyncStale() {
+			staleFeeds = append(staleFeeds, *feed)
+		}
+	}
+
+	return staleFeeds, nil
 }

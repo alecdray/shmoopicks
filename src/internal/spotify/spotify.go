@@ -3,35 +3,53 @@ package spotify
 import (
 	"fmt"
 	"shmoopicks/src/internal/core/contextx"
+	"shmoopicks/src/internal/user"
 	"time"
 
 	spotify "github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
+type (
+	SavedAlbum = spotify.SavedAlbum
+)
+
+const maxCallsPerFunc = 10
+
 type Service struct {
+	spotifyAuthService *AuthService
+	userService        *user.Service
 }
 
-func NewService() *Service {
-	return &Service{}
+func NewService(userService *user.Service, spotifyAuthService *AuthService) *Service {
+	return &Service{userService: userService, spotifyAuthService: spotifyAuthService}
 }
 
-func (s *Service) Client(ctx contextx.ContextX) (*spotify.Client, error) {
-	a, err := ctx.App()
+func (s *Service) Client(ctx contextx.ContextX, userId string) (*spotify.Client, error) {
+	user, err := s.userService.GetUserById(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	app, err := ctx.App()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app: %w", err)
 	}
 
-	claims := a.Claims()
-	if claims == nil || claims.SpotifyToken == nil {
-		return nil, fmt.Errorf("spotify token not found in JWT claims")
+	userRefreshToken := user.SpotifyRefreshToken(app.Config().SpotifyTokenSecret)
+	if userRefreshToken == nil {
+		return nil, fmt.Errorf("user has no spotify refresh token")
 	}
 
-	return spotify.New(spotifyauth.New().Client(ctx, claims.SpotifyToken)), nil
+	client, err := s.spotifyAuthService.GetClientFromRefreshToken(ctx, *userRefreshToken)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrFailedToGetToken, err)
+	}
+
+	return client, nil
 }
 
-func (s *Service) GetUser(ctx contextx.ContextX) (*spotify.PrivateUser, error) {
-	client, err := s.Client(ctx)
+func (s *Service) GetUser(ctx contextx.ContextX, userId string) (*spotify.PrivateUser, error) {
+	client, err := s.Client(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -39,51 +57,49 @@ func (s *Service) GetUser(ctx contextx.ContextX) (*spotify.PrivateUser, error) {
 	return client.CurrentUser(ctx)
 }
 
-func (s *Service) GetRecentlySavedTracks(ctx contextx.ContextX, window time.Duration) ([]spotify.SavedTrack, error) {
-	client, err := s.Client(ctx)
+func (s *Service) GetRecentlySavedAlbums(ctx contextx.ContextX, userId string, window time.Duration) ([]spotify.SavedAlbum, error) {
+	client, err := s.Client(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
 
-	var userTracks []spotify.SavedTrack = nil
+	var userAlbums []spotify.SavedAlbum = make([]spotify.SavedAlbum, 0, 50)
 	minTime := time.Now().Add(-window)
 	maxTime := time.Now()
 	offset := 0
-	for userTracks == nil || maxTime.After(minTime) {
-		tracks, err := client.CurrentUsersTracks(ctx, spotify.Limit(50), spotify.Offset(offset))
+	for maxTime.After(minTime) {
+		albums, err := client.CurrentUsersAlbums(ctx, spotify.Limit(50), spotify.Offset(offset))
 		if err != nil {
 			return nil, err
 		}
 
-		offset += len(tracks.Tracks)
+		offset += len(albums.Albums)
 
-		if len(tracks.Tracks) == 0 {
-			break
-		} else if userTracks == nil {
-			userTracks = make([]spotify.SavedTrack, 0, len(tracks.Tracks))
-		}
-
-		for _, track := range tracks.Tracks {
-			addedAt, err := time.Parse(time.RFC3339, track.AddedAt)
+		for _, album := range albums.Albums {
+			addedAt, err := time.Parse(time.RFC3339, album.AddedAt)
 			if err != nil {
 				return nil, err
 			}
 
 			if addedAt.After(minTime) {
-				userTracks = append(userTracks, track)
+				userAlbums = append(userAlbums, album)
 			}
 
 			if addedAt.Before(maxTime) {
 				maxTime = addedAt
 			}
 		}
+
+		if len(albums.Albums) < 50 {
+			break
+		}
 	}
 
-	return userTracks, nil
+	return userAlbums, nil
 }
 
-func (s *Service) GetRecentlyPlayedTracks(ctx contextx.ContextX, window time.Duration) ([]spotify.RecentlyPlayedItem, error) {
-	client, err := s.Client(ctx)
+func (s *Service) GetRecentlyPlayedTracks(ctx contextx.ContextX, userId string, window time.Duration) ([]spotify.RecentlyPlayedItem, error) {
+	client, err := s.Client(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +135,8 @@ func (s *Service) GetRecentlyPlayedTracks(ctx contextx.ContextX, window time.Dur
 	return recentlyPlayedTracks, nil
 }
 
-func (s *Service) GetUsersSavedAlbums(ctx contextx.ContextX) ([]spotify.SavedAlbum, error) {
-	client, err := s.Client(ctx)
+func (s *Service) GetUsersSavedAlbums(ctx contextx.ContextX, userId string) ([]spotify.SavedAlbum, error) {
+	client, err := s.Client(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +161,8 @@ func (s *Service) GetUsersSavedAlbums(ctx contextx.ContextX) ([]spotify.SavedAlb
 	return collectedAlbums, nil
 }
 
-func (s *Service) GetUsersSavedTracks(ctx contextx.ContextX) ([]spotify.SavedTrack, error) {
-	client, err := s.Client(ctx)
+func (s *Service) GetUsersSavedTracks(ctx contextx.ContextX, userId string) ([]spotify.SavedTrack, error) {
+	client, err := s.Client(ctx, userId)
 	if err != nil {
 		return nil, err
 	}

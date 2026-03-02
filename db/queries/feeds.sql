@@ -24,7 +24,8 @@ select * from feeds where user_id = ?;
 
 -- name: GetStaleFeedsBatch :many
 SELECT * FROM feeds
-WHERE last_synced_at < datetime('now', ?)
-OR last_synced_at IS NULL
-ORDER BY last_synced_at ASC
+WHERE last_sync_completed_at IS NOT NULL
+AND last_sync_completed_at < datetime('now', ?)
+AND kind = ?
+ORDER BY last_sync_completed_at ASC
 LIMIT 10;

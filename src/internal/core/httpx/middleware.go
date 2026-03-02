@@ -36,9 +36,14 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 			}
 
 			claims, err := app.ValidateClaimsFromRequest(r, a.Config().JwtSecret)
-			if err != nil || (claims.SpotifyToken == nil && claims.UserID == nil) {
+			if err != nil {
 				a.DeleteClaims(w)
-				err = fmt.Errorf("%s Invalid or expired token: %s", errPrefix, err.Error())
+			} else if claims == nil || claims.UserID == nil {
+				err = fmt.Errorf("missing user ID")
+			}
+
+			if err != nil {
+				err = fmt.Errorf("%s Invalid or expired claims: %s", errPrefix, err.Error())
 				HandleUnauthorized(ctx, w, err)
 				return
 			}
@@ -65,6 +70,12 @@ func JwtMiddleware(spotifyService *spotify.Service, userService *user.Service) M
 				return
 			}
 			ctx = ctx.WithUserId(user.ID)
+
+			if user.SpotifyRefreshToken(a.Config().SpotifyTokenSecret) == nil {
+				err = fmt.Errorf("%s missing Spotify refresh token", errPrefix)
+				HandleUnauthorized(ctx, w, err)
+				return
+			}
 
 			claims.UserID = &user.ID
 			err = a.SetClaims(w, claims)

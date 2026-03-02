@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"shmoopicks/src/internal/core/app"
 	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/feed"
@@ -15,15 +14,13 @@ import (
 )
 
 type HttpHandler struct {
-	db          *db.DB
 	spotifyAuth *spotify.AuthService
 	userService *user.Service
 	feedService *feed.Service
 }
 
-func NewHttpHandler(db *db.DB, spotifyAuth *spotify.AuthService, userService *user.Service, feedService *feed.Service) *HttpHandler {
+func NewHttpHandler(spotifyAuth *spotify.AuthService, userService *user.Service, feedService *feed.Service) *HttpHandler {
 	return &HttpHandler{
-		db:          db,
 		spotifyAuth: spotifyAuth,
 		userService: userService,
 		feedService: feedService,
@@ -48,9 +45,21 @@ func (h *HttpHandler) GetLoginPage(w http.ResponseWriter, r *http.Request) {
 		slog.DebugContext(ctx, err.Error())
 	}
 
-	if claims != nil && claims.SpotifyToken != nil {
-		http.Redirect(w, r, "/app/dashboard", http.StatusTemporaryRedirect)
-		return
+	if claims != nil && claims.UserID != nil {
+		user, err := h.userService.GetUserById(ctx, *claims.UserID)
+		if err != nil {
+			err = fmt.Errorf("failed to get user: %w", err)
+			httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+				Status: http.StatusInternalServerError,
+				Err:    err,
+			})
+			return
+		}
+
+		if user.SpotifyRefreshToken(a.Config().SpotifyTokenSecret) != nil {
+			http.Redirect(w, r, "/app/dashboard", http.StatusTemporaryRedirect)
+			return
+		}
 	}
 
 	loginPage := LoginPage(LoginPageProps{
@@ -116,7 +125,7 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	user, err := h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID)
+	user, err := h.userService.UpsertSpotifyUser(ctx, spotifyUser.ID, token.RefreshToken)
 	if err != nil {
 		err = fmt.Errorf("failed to upsert spotify user: %w", err)
 		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
@@ -140,10 +149,10 @@ func (h *HttpHandler) AuthorizeSpotify(w http.ResponseWriter, r *http.Request) {
 	if claims == nil {
 		claims = app.NewClaims()
 	}
-	claims.SpotifyToken = token
+	claims.UserID = &user.ID
 	err = a.SetClaims(w, claims)
 	if err != nil {
-		err = fmt.Errorf("failed to update JWT with Spotify token: %w", err)
+		err = fmt.Errorf("failed to update JWT with user ID: %w", err)
 		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
 			Status: http.StatusInternalServerError,
 			Err:    err,

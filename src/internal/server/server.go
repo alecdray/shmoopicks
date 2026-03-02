@@ -8,8 +8,10 @@ import (
 	"os"
 	"shmoopicks/src/internal/auth"
 	"shmoopicks/src/internal/core/app"
+	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/httpx"
+	"shmoopicks/src/internal/core/task"
 	"shmoopicks/src/internal/dashboard"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
@@ -20,13 +22,20 @@ import (
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-func Start(ctx context.Context, app app.App) {
-	db, err := db.NewDB(app.Config().DbPath)
-	if err != nil {
-		slog.Error("Failed to create database", "error", err)
-		os.Exit(1)
-	}
-	defer db.Close()
+type services struct {
+	taskManager *task.TaskManager
+	user        *user.Service
+	musicbrainz *musicbrainz.Service
+	spotifyAuth *spotify.AuthService
+	spotify     *spotify.Service
+	library     *library.Service
+	feed        *feed.Service
+}
+
+func NewServices(app app.App, db *db.DB) *services {
+	s := &services{}
+
+	s.taskManager = task.NewTaskManager(db, slog.Default())
 
 	mbClient, err := musicbrainz.NewClient(
 		app.Config().AppName,
@@ -38,11 +47,11 @@ func Start(ctx context.Context, app app.App) {
 		os.Exit(1)
 	}
 
-	userService := user.NewService(db)
+	s.user = user.NewService(db)
 
-	mbService := musicbrainz.NewService(mbClient)
+	s.musicbrainz = musicbrainz.NewService(mbClient)
 
-	spotifyAuthService := spotify.NewAuthService(
+	s.spotifyAuth = spotify.NewAuthService(
 		app.Config().SpotifyClientId,
 		app.Config().SpotifyClientSecret,
 		fmt.Sprintf("%s/spotify/callback", app.Config().Host),
@@ -50,25 +59,49 @@ func Start(ctx context.Context, app app.App) {
 		spotifyauth.ScopeUserReadRecentlyPlayed,
 	)
 
-	spotifyService := spotify.NewService()
+	s.spotify = spotify.NewService(s.user, s.spotifyAuth)
 
-	libraryService := library.NewService(db)
+	s.library = library.NewService(db)
 
-	feedService := feed.NewService(db, spotifyService, libraryService)
+	s.feed = feed.NewService(db, s.spotify, s.library)
+	s.taskManager.RegisterCronTask(
+		feed.NewSyncStaleSpotifyFeedsTask(s.feed),
+	)
+
+	return s
+}
+
+func Start(ctx context.Context, app app.App) {
+	db, err := db.NewDB(app.Config().DbPath)
+	if err != nil {
+		slog.Error("Failed to create database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	services := NewServices(app, db)
+	services.taskManager.Start(contextx.NewContextX(ctx).WithApp(app))
+	defer services.taskManager.Stop()
 
 	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
 
 	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))
 
-	authHandler := auth.NewHttpHandler(db, spotifyAuthService, userService, feedService)
+	authHandler := auth.NewHttpHandler(services.spotifyAuth, services.user, services.feed)
 	rootMux.Handle("/{$}", httpx.HandlerFunc(authHandler.GetLoginPage))
 	rootMux.Handle("/logout", httpx.HandlerFunc(authHandler.Logout))
 	rootMux.Handle("/spotify/callback", httpx.HandlerFunc(authHandler.AuthorizeSpotify))
 
-	appMux := httpx.NewMux(app, httpx.JwtMiddleware(spotifyService, userService))
+	appMux := httpx.NewMux(app, httpx.JwtMiddleware(services.spotify, services.user))
 	rootMux.Use("/app/", appMux)
 
-	dashboardHandler := dashboard.NewHttpHandler(spotifyAuthService, mbService, feedService, libraryService)
+	dashboardHandler := dashboard.NewHttpHandler(
+		services.spotifyAuth,
+		services.musicbrainz,
+		services.feed,
+		services.library,
+		services.taskManager,
+	)
 	appMux.Handle("/app/dashboard", httpx.HandlerFunc(dashboardHandler.GetDashboardPage))
 	appMux.Handle("/app/dashboard/feeds-dropdown-content", httpx.HandlerFunc(dashboardHandler.GetFeedsDropdown))
 	appMux.Handle("/app/dashboard/albums-table", httpx.HandlerFunc(dashboardHandler.GetAlbumsTable))

@@ -10,6 +10,7 @@ require (
 	github.com/lithammer/fuzzysearch v1.1.8
 	github.com/mattn/go-sqlite3 v1.14.34
 	github.com/pressly/goose/v3 v3.26.0
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/zmb3/spotify/v2 v2.4.3
 	golang.org/x/oauth2 v0.0.0-20210810183815-faf39c7919d5
 )

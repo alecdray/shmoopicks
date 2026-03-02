@@ -3,9 +3,9 @@ INSERT INTO users (id, spotify_id) VALUES (?, ?)
 RETURNING *;
 
 -- name: UpsertSpotifyUser :one
-INSERT INTO users (id, spotify_id) VALUES (?, ?)
+INSERT INTO users (id, spotify_id, spotify_refresh_token) VALUES (?, ?, ?)
 ON CONFLICT (spotify_id)
-DO UPDATE SET spotify_id = EXCLUDED.spotify_id
+DO UPDATE SET spotify_id = EXCLUDED.spotify_id, spotify_refresh_token = coalesce(EXCLUDED.spotify_refresh_token, spotify_refresh_token)
 RETURNING *;
 
 -- name: GetUser :one

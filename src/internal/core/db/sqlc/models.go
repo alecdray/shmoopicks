@@ -76,10 +76,11 @@ type Track struct {
 }
 
 type User struct {
-	ID        string
-	SpotifyID string
-	CreatedAt time.Time
-	DeletedAt sql.NullTime
+	ID                  string
+	SpotifyID           string
+	CreatedAt           time.Time
+	DeletedAt           sql.NullTime
+	SpotifyRefreshToken sql.NullString
 }
 
 type UserArtist struct {

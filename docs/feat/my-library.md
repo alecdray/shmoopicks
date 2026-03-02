@@ -44,7 +44,7 @@ Album details view:
 - [x] Digital media should be automatically synced with the user's Spotify account.
 - [x] User should be able to view their library
 - [x] Users should be able to open music in Spotify from the library
-- [ ] Library should be synced on a regular basis
+- [x] Library should be synced on a regular basis
 - [ ] Physical media should be manually added to the library.
 
 ## vN
@@ -54,3 +54,4 @@ Album details view:
   - [ ] List view
   - [ ] Shelf view
 - [ ] Faceted search
+- [ ] Sync error handling

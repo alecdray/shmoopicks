@@ -57,7 +57,7 @@ func (h *HttpHandler) GetLoginPage(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if user.SpotifyRefreshToken(a.Config().SpotifyTokenSecret) != nil {
-			http.Redirect(w, r, "/app/dashboard", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, "/app/library/dashboard", http.StatusTemporaryRedirect)
 			return
 		}
 	}

@@ -1,4 +1,4 @@
-package dashboard
+package adapters
 
 import (
 	"fmt"
@@ -51,17 +51,17 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	library, err := h.libraryService.GetLibrary(ctx, userId)
+	lib, err := h.libraryService.GetLibrary(ctx, userId)
 	if err != nil {
 		err = fmt.Errorf("failed to get library: %w", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	library.Albums.SortByDate(false)
+	lib.Albums.SortByDate(false)
 
 	dashboardPage := DashboardPage(DashboardPageProps{
-		Library: library,
+		Library: lib,
 		Feeds:   feeds,
 	})
 	dashboardPage.Render(r.Context(), w)
@@ -76,19 +76,19 @@ func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	library, err := h.libraryService.GetLibrary(ctx, userId)
+	lib, err := h.libraryService.GetLibrary(ctx, userId)
 	if err != nil {
 		err = fmt.Errorf("failed to get library: %w", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if library == nil {
+	if lib == nil {
 		http.Error(w, "library not found", http.StatusNotFound)
 		return
 	}
 
-	albums := library.Albums
+	albums := lib.Albums
 	sortBy := r.URL.Query().Get("sortBy")
 	dir := r.URL.Query().Get("dir")
 
@@ -125,10 +125,10 @@ func (h *HttpHandler) GetFeedsDropdown(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Render content first
-	contentComponent := feedsDropdownContent(feeds)
+	contentComponent := FeedsDropdownContent(feeds)
 	contentComponent.Render(r.Context(), w)
 
 	// Render button as OOB swap
-	buttonComponent := feedsDropdownButton(feeds, true)
+	buttonComponent := FeedsDropdownButton(feeds, true)
 	buttonComponent.Render(r.Context(), w)
 }

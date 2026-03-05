@@ -2,10 +2,14 @@ package library
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"shmoopicks/src/internal/core/db"
 	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/db/sqlc"
+	"shmoopicks/src/internal/core/utils"
+	"shmoopicks/src/internal/review"
 	"sort"
 	"time"
 
@@ -95,9 +99,10 @@ type AlbumDTO struct {
 	Artists   []ArtistDTO
 	Tracks    []TrackDTO
 	Releases  ReleaseDTOs
+	Rating    *review.AlbumRatingDTO
 }
 
-func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackDTO, releases []ReleaseDTO) AlbumDTO {
+func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackDTO, releases []ReleaseDTO, rating *review.AlbumRatingDTO) AlbumDTO {
 	return AlbumDTO{
 		ID:        model.ID,
 		SpotifyID: model.SpotifyID,
@@ -105,6 +110,7 @@ func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackD
 		Artists:   artists,
 		Tracks:    tracks,
 		Releases:  releases,
+		Rating:    rating,
 	}
 }
 
@@ -275,6 +281,17 @@ func (s *Service) GetAlbumsInLibrary(ctx context.Context, userId string) ([]Albu
 		tracksByAlbumId[track.AlbumID] = append(tracksByAlbumId[track.AlbumID], NewTrackDTOFromModel(track.Track))
 	}
 
+	ratings, err := s.db.Queries().GetUserAlbumRatings(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get ratings: %w", err)
+		return nil, err
+	}
+
+	ratingsByAlbumId := make(map[string]review.AlbumRatingDTO, len(ratings))
+	for _, rating := range ratings {
+		ratingsByAlbumId[rating.AlbumID] = *review.NewAlbumRatingDTOFromModel(rating)
+	}
+
 	var albumDTOs []AlbumDTO
 	for _, album := range albums {
 		dto := NewAlbumDTOFromModel(
@@ -282,6 +299,7 @@ func (s *Service) GetAlbumsInLibrary(ctx context.Context, userId string) ([]Albu
 			artistsByAlbumId[album.ID],
 			tracksByAlbumId[album.ID],
 			releasesByAlbumId[album.ID],
+			utils.NewPointer(ratingsByAlbumId[album.ID]),
 		)
 		albumDTOs = append(albumDTOs, dto)
 	}
@@ -312,7 +330,7 @@ func (s *Service) AddAlbumsToLibrary(ctx context.Context, userId string, albums 
 				err = fmt.Errorf("failed to get/create album: %w", err)
 				return err
 			}
-			album = NewAlbumDTOFromModel(albumModel, album.Artists, album.Tracks, album.Releases)
+			album = NewAlbumDTOFromModel(albumModel, album.Artists, album.Tracks, album.Releases, album.Rating)
 
 			for i, track := range album.Tracks {
 				// insert tracks
@@ -396,4 +414,73 @@ func (s *Service) AddAlbumsToLibrary(ctx context.Context, userId string, albums 
 	})
 
 	return err
+}
+
+func (s *Service) GetAlbumInLibrary(ctx context.Context, userId string, albumId string) (*AlbumDTO, error) {
+	album, err := s.db.Queries().GetAlbum(ctx, albumId)
+	if err != nil {
+		err = fmt.Errorf("failed to get albums: %w", err)
+		return nil, err
+	}
+
+	releases, err := s.db.Queries().GetUserReleasesByAlbumId(ctx, sqlc.GetUserReleasesByAlbumIdParams{
+		UserID:  userId,
+		AlbumID: albumId,
+	})
+	if err != nil {
+		err = fmt.Errorf("failed to get releases: %w", err)
+		return nil, err
+	}
+
+	if len(releases) < 1 {
+		return nil, errors.New("album not in library")
+	}
+
+	releasesDtos := make([]ReleaseDTO, len(releases))
+	for i, release := range releases {
+		releasesDtos[i] = NewReleaseDTOFromModel(release.Release, &release.UserRelease)
+	}
+
+	artists, err := s.db.Queries().GetAlbumArtistByAlbumId(ctx, album.ID)
+	if err != nil {
+		err = fmt.Errorf("failed to get album artists: %w", err)
+		return nil, err
+	}
+
+	artistDtos := make([]ArtistDTO, len(artists))
+	for i, artist := range artists {
+		artistDtos[i] = NewArtistDTOFromModel(artist.Artist)
+	}
+
+	tracks, err := s.db.Queries().GetAlbumTracksByAlbumId(ctx, album.ID)
+	if err != nil {
+		err = fmt.Errorf("failed to get album tracks: %w", err)
+		return nil, err
+	}
+
+	trackDtos := make([]TrackDTO, len(tracks))
+	for i, track := range tracks {
+		trackDtos[i] = NewTrackDTOFromModel(track.Track)
+	}
+
+	rating, err := s.db.Queries().GetUserAlbumRating(ctx, sqlc.GetUserAlbumRatingParams{
+		UserID:  userId,
+		AlbumID: album.ID,
+	})
+	if errors.Is(sql.ErrNoRows, err) {
+		// pass
+	} else if err != nil {
+		err = fmt.Errorf("failed to get ratings: %w", err)
+		return nil, err
+	}
+
+	albumDto := NewAlbumDTOFromModel(
+		album,
+		artistDtos,
+		trackDtos,
+		releasesDtos,
+		review.NewAlbumRatingDTOFromModel(rating),
+	)
+
+	return &albumDto, nil
 }

@@ -26,6 +26,13 @@ func NewNullString(s string) sql.NullString {
 	}
 }
 
+func NewNullFloat64(f float64) sql.NullFloat64 {
+	return sql.NullFloat64{
+		Float64: f,
+		Valid:   true,
+	}
+}
+
 func DurationToSQLiteDatetime(d time.Duration) string {
 	return fmt.Sprintf("-%d seconds", int(d.Seconds()))
 }

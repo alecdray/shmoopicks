@@ -8,3 +8,9 @@ RETURNING *;
 SELECT sqlc.embed(user_releases), sqlc.embed(releases) FROM user_releases
 JOIN releases ON user_releases.release_id = releases.id
 WHERE user_id = ?;
+
+-- name: GetUserReleasesByAlbumId :many
+SELECT sqlc.embed(user_releases), sqlc.embed(releases) FROM user_releases
+JOIN releases ON user_releases.release_id = releases.id
+WHERE user_id = ?
+AND album_id = ?;

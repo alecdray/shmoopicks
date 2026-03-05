@@ -18,6 +18,7 @@ import (
 	libraryAdapters "shmoopicks/src/internal/library/adapters"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/review"
+	reviewAdapters "shmoopicks/src/internal/review/adapters"
 	"shmoopicks/src/internal/spotify"
 	"shmoopicks/src/internal/user"
 
@@ -32,6 +33,7 @@ type services struct {
 	spotify     *spotify.Service
 	library     *library.Service
 	feed        *feed.Service
+	review      *review.Service
 }
 
 func NewServices(app app.App, db *db.DB) *services {
@@ -69,6 +71,8 @@ func NewServices(app app.App, db *db.DB) *services {
 	s.taskManager.RegisterCronTask(
 		feed.NewSyncStaleSpotifyFeedsTask(s.feed),
 	)
+
+	s.review = review.NewService(db)
 
 	return s
 }
@@ -108,9 +112,11 @@ func Start(ctx context.Context, app app.App) {
 	appMux.Handle("/app/library/dashboard/feeds-dropdown-content", httpx.HandlerFunc(libraryHandler.GetFeedsDropdown))
 	appMux.Handle("/app/library/dashboard/albums-table", httpx.HandlerFunc(libraryHandler.GetAlbumsTable))
 
-	reviewHandler := review.NewHttpHandler()
+	reviewHandler := reviewAdapters.NewHttpHandler(services.library, services.review)
 	appMux.Handle("GET /app/review/rating-recommender", httpx.HandlerFunc(reviewHandler.GetRatingRecommender))
-	appMux.Handle("POST /app/review/rating-recommender", httpx.HandlerFunc(reviewHandler.SubmitRatingRecommender))
+	appMux.Handle("POST /app/review/rating-recommender/questions", httpx.HandlerFunc(reviewHandler.SubmitRatingRecommenderQuestions))
+	appMux.Handle("PUT /app/review/rating-recommender/rating", httpx.HandlerFunc(reviewHandler.UpdateRatingRecommenderRating))
+	appMux.Handle("POST /app/review/rating-recommender/rating", httpx.HandlerFunc(reviewHandler.SubmitRatingRecommenderRating))
 
 	// Not found handler, must be registered after all other handlers
 	rootMux.HandleFunc("/", httpx.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

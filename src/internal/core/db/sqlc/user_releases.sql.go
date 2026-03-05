@@ -55,6 +55,57 @@ func (q *Queries) GetUserReleases(ctx context.Context, userID string) ([]GetUser
 	return items, nil
 }
 
+const getUserReleasesByAlbumId = `-- name: GetUserReleasesByAlbumId :many
+SELECT user_releases.id, user_releases.user_id, user_releases.release_id, user_releases.added_at, user_releases.deleted_at, releases.id, releases.album_id, releases.format, releases.created_at, releases.deleted_at FROM user_releases
+JOIN releases ON user_releases.release_id = releases.id
+WHERE user_id = ?
+AND album_id = ?
+`
+
+type GetUserReleasesByAlbumIdParams struct {
+	UserID  string
+	AlbumID string
+}
+
+type GetUserReleasesByAlbumIdRow struct {
+	UserRelease UserRelease
+	Release     Release
+}
+
+func (q *Queries) GetUserReleasesByAlbumId(ctx context.Context, arg GetUserReleasesByAlbumIdParams) ([]GetUserReleasesByAlbumIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserReleasesByAlbumId, arg.UserID, arg.AlbumID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserReleasesByAlbumIdRow
+	for rows.Next() {
+		var i GetUserReleasesByAlbumIdRow
+		if err := rows.Scan(
+			&i.UserRelease.ID,
+			&i.UserRelease.UserID,
+			&i.UserRelease.ReleaseID,
+			&i.UserRelease.AddedAt,
+			&i.UserRelease.DeletedAt,
+			&i.Release.ID,
+			&i.Release.AlbumID,
+			&i.Release.Format,
+			&i.Release.CreatedAt,
+			&i.Release.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const upsertUserRelease = `-- name: UpsertUserRelease :one
 INSERT INTO user_releases (id, user_id, release_id, added_at) VALUES (?, ?, ?, ?)
 ON CONFLICT (user_id, release_id)

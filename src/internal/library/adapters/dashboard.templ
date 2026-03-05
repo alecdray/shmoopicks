@@ -6,6 +6,7 @@ import (
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
+	"shmoopicks/src/internal/review"
 )
 
 type DashboardPageProps struct {
@@ -174,6 +175,22 @@ templ albumRow(album library.AlbumDTO) {
 			}
 		</td>
 		<td>
+			if album.Rating != nil && album.Rating.Rating != nil {
+				<div class="badge badge-soft badge-primary text-nowrap">
+					{ *album.Rating.Rating } - { review.GetScoreLabel(*album.Rating.Rating) }
+				</div>
+			} else {
+				<div
+					hx-get={ fmt.Sprintf("/app/review/rating-recommender?albumId=%s", album.ID) }
+					hx-trigger="click"
+					hx-swap="none"
+					class="badge badge-dash badge-neutral hover:badge-primary hover:cursor-pointer text-nowrap"
+				>
+					Rate
+				</div>
+			}
+		</td>
+		<td>
 			<div class="flex gap-3 items-center">
 				@formatIcon(album.Releases, models.ReleaseFormatDigital)
 				@formatIcon(album.Releases, models.ReleaseFormatVinyl)
@@ -227,13 +244,13 @@ templ albumsTableSortableHeader(colName, sortedBy, sortedDir string) {
 templ AlbumsTable(albums []library.AlbumDTO, sortedBy string, sortedDir string) {
 	<div id="album-table" class="w-full px-6 py-6">
 		<div class="w-full">
-			<table class="table table-zebra w-full table-fixed">
-				<colgroup>
-					<col style="width: 35%"/>
-					<col style="width: 35%"/>
-					<col style="width: 18%"/>
-					<col style="width: 12%"/>
-				</colgroup>
+			<table class="table table-zebra w-full">
+				// <colgroup>
+				// 	<col style="width: 35%"/>
+				// 	<col style="width: 35%"/>
+				// 	<col style="width: 18%"/>
+				// 	<col style="width: 12%"/>
+				// </colgroup>
 				<thead>
 					<tr>
 						@albumsTableSortableHeader("album", sortedBy, sortedDir) {
@@ -242,6 +259,7 @@ templ AlbumsTable(albums []library.AlbumDTO, sortedBy string, sortedDir string) 
 						@albumsTableSortableHeader("artist", sortedBy, sortedDir) {
 							<span>Artists</span>
 						}
+						<th><span>Rating</span></th>
 						<th>Formats</th>
 						@albumsTableSortableHeader("date", sortedBy, sortedDir) {
 							<span>Date Added</span>

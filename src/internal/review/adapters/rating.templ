@@ -1,0 +1,95 @@
+package adapters
+
+import (
+	"fmt"
+	"shmoopicks/src/internal/core/templates"
+	"shmoopicks/src/internal/library"
+	"shmoopicks/src/internal/review"
+	"strconv"
+)
+
+// RatingOption — single radio input + label
+templ RatingQuestionRadio(name review.RatingQuestionKey, opt review.RatingQuestionOption, isSelected bool) {
+	<label class="flex items-center gap-3 cursor-pointer">
+		<input
+			type="radio"
+			name={ name }
+			value={ strconv.Itoa(opt.Value) }
+			class="radio radio-primary radio-sm"
+			checked?={ isSelected }
+		/>
+		<span class="text-base-content/70">{ opt.Label }</span>
+	</label>
+}
+
+templ RatingQuestionFieldset(question review.RatingQuestion) {
+	<fieldset class="flex flex-col gap-3">
+		<legend class="text-base-content font-medium mb-2">{ question.Question }</legend>
+		for _, opt := range question.Options {
+			@RatingQuestionRadio(question.Key, opt, question.Value == opt.Value)
+		}
+	</fieldset>
+}
+
+templ RatingRecommenderForm(albumId string, questions review.RatingQuestions) {
+	<form
+		hx-post={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", albumId) }
+		hx-swap="outerHTML"
+		class="flex flex-col gap-8"
+	>
+		for _, q := range questions {
+			@RatingQuestionFieldset(q)
+		}
+		<button class="btn btn-primary" type="submit">Calculate Score</button>
+	</form>
+}
+
+templ RatingRecommenderConfirm(album library.AlbumDTO, score float64) {
+	<form
+		class="flex flex-col gap-4"
+		hx-ext="morph"
+		hx-post={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
+	>
+		{ album.Title }
+		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+			<legend class="fieldset-legend">Rating</legend>
+			<label class="input w-full">
+				<input
+					name="score"
+					type="number"
+					min="0"
+					max="10"
+					class="grow"
+					step="0.1"
+					placeholder="Enter your rating"
+					value={ score }
+					required
+					hx-put={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
+					hx-trigger="keyup changed delay:500ms, change delay:500ms"
+					hx-target="closest form"
+					hx-target-error="next .error"
+					hx-swap="morph"
+					autofocus
+				/>
+				<span class="badge badge-primary badge-soft badge-s">{ review.GetScoreLabel(score) }</span>
+			</label>
+			@RatingRecommenderConfirmError("")
+		</fieldset>
+		<button
+			class="btn btn-primary w-full"
+			type="submit"
+			hx-target-error="next .error"
+		>Lock in</button>
+		<p class="label error text-error"></p>
+	</form>
+}
+
+templ RatingRecommenderConfirmError(text string) {
+	<p class="label error text-error">{ text }</p>
+}
+
+templ RatingModal(albumId string, questions review.RatingQuestions) {
+	@templates.Modal("rating-modal", templates.ModalProps{
+		ModalContent: RatingRecommenderForm(albumId, questions),
+	})
+}

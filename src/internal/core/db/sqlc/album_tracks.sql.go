@@ -10,26 +10,26 @@ import (
 	"strings"
 )
 
-const getAlbumTrackByAlbumId = `-- name: GetAlbumTrackByAlbumId :many
+const getAlbumTracksByAlbumId = `-- name: GetAlbumTracksByAlbumId :many
 SELECT album_tracks.album_id, tracks.id, tracks.spotify_id, tracks.title, tracks.created_at, tracks.deleted_at FROM album_tracks
 JOIN tracks ON album_tracks.track_id = tracks.id
 WHERE album_id = ?
 `
 
-type GetAlbumTrackByAlbumIdRow struct {
+type GetAlbumTracksByAlbumIdRow struct {
 	AlbumID string
 	Track   Track
 }
 
-func (q *Queries) GetAlbumTrackByAlbumId(ctx context.Context, albumID string) ([]GetAlbumTrackByAlbumIdRow, error) {
-	rows, err := q.db.QueryContext(ctx, getAlbumTrackByAlbumId, albumID)
+func (q *Queries) GetAlbumTracksByAlbumId(ctx context.Context, albumID string) ([]GetAlbumTracksByAlbumIdRow, error) {
+	rows, err := q.db.QueryContext(ctx, getAlbumTracksByAlbumId, albumID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetAlbumTrackByAlbumIdRow
+	var items []GetAlbumTracksByAlbumIdRow
 	for rows.Next() {
-		var i GetAlbumTrackByAlbumIdRow
+		var i GetAlbumTracksByAlbumIdRow
 		if err := rows.Scan(
 			&i.AlbumID,
 			&i.Track.ID,

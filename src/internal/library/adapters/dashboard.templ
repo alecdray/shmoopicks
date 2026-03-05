@@ -9,6 +9,10 @@ import (
 	"shmoopicks/src/internal/review"
 )
 
+func GetAlbumRatingID(albumId string) string {
+	return fmt.Sprintf("album-rating-%s", albumId)
+}
+
 type DashboardPageProps struct {
 	Feeds   []feed.FeedDTO
 	Library *library.Library
@@ -151,6 +155,33 @@ templ formatIcon(releases library.ReleaseDTOs, format models.ReleaseFormat) {
 	}
 }
 
+templ AlbumRating(album library.AlbumDTO, isOobSwap bool) {
+	if album.Rating != nil && album.Rating.Rating != nil {
+		<div
+			id={ GetAlbumRatingID(album.ID) }
+			class="badge badge-soft badge-primary text-nowrap"
+			if isOobSwap {
+				hx-swap-oob="true"
+			}
+		>
+			{ *album.Rating.Rating } - { review.GetScoreLabel(*album.Rating.Rating) }
+		</div>
+	} else {
+		<div
+			id={ GetAlbumRatingID(album.ID) }
+			class="badge badge-dash badge-neutral hover:badge-primary hover:cursor-pointer text-nowrap"
+			hx-get={ fmt.Sprintf("/app/review/rating-recommender?albumId=%s", album.ID) }
+			hx-trigger="click"
+			hx-swap="none"
+			if isOobSwap {
+				hx-swap-oob="true"
+			}
+		>
+			Rate
+		</div>
+	}
+}
+
 templ albumRow(album library.AlbumDTO) {
 	<tr class="hover:bg-base-300 transition-colors duration-150">
 		<td class="font-medium">
@@ -175,20 +206,7 @@ templ albumRow(album library.AlbumDTO) {
 			}
 		</td>
 		<td>
-			if album.Rating != nil && album.Rating.Rating != nil {
-				<div class="badge badge-soft badge-primary text-nowrap">
-					{ *album.Rating.Rating } - { review.GetScoreLabel(*album.Rating.Rating) }
-				</div>
-			} else {
-				<div
-					hx-get={ fmt.Sprintf("/app/review/rating-recommender?albumId=%s", album.ID) }
-					hx-trigger="click"
-					hx-swap="none"
-					class="badge badge-dash badge-neutral hover:badge-primary hover:cursor-pointer text-nowrap"
-				>
-					Rate
-				</div>
-			}
+			@AlbumRating(album, false)
 		</td>
 		<td>
 			<div class="flex gap-3 items-center">

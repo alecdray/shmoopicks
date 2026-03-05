@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+const RatingModalId = "rating-modal"
+
 // RatingOption — single radio input + label
 templ RatingQuestionRadio(name review.RatingQuestionKey, opt review.RatingQuestionOption, isSelected bool) {
 	<label class="flex items-center gap-3 cursor-pointer">
@@ -31,7 +33,7 @@ templ RatingQuestionFieldset(question review.RatingQuestion) {
 	</fieldset>
 }
 
-templ RatingRecommenderForm(albumId string, questions review.RatingQuestions) {
+templ RatingRecommenderQuestions(albumId string, questions review.RatingQuestions) {
 	<form
 		hx-post={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", albumId) }
 		hx-swap="outerHTML"
@@ -88,8 +90,23 @@ templ RatingRecommenderConfirmError(text string) {
 	<p class="label error text-error">{ text }</p>
 }
 
-templ RatingModal(albumId string, questions review.RatingQuestions) {
-	@templates.Modal("rating-modal", templates.ModalProps{
-		ModalContent: RatingRecommenderForm(albumId, questions),
-	})
+type RatingModalProps struct {
+	Questions *review.RatingQuestions
+	Score     *float64
+}
+
+templ RatingModal(album library.AlbumDTO, props RatingModalProps) {
+	if props.Questions != nil {
+		@templates.Modal(RatingModalId, templates.ModalProps{
+			ModalContent: RatingRecommenderQuestions(album.ID, *props.Questions),
+		})
+	} else {
+		@templates.Modal(RatingModalId, templates.ModalProps{
+			ModalContent: RatingRecommenderConfirm(album, *props.Score),
+		})
+	}
+}
+
+templ CloseRatingModal() {
+	@templates.ForceCloseModal(RatingModalId)
 }

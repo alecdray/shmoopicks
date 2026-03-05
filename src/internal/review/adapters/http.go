@@ -7,6 +7,7 @@ import (
 	"shmoopicks/src/internal/core/contextx"
 	"shmoopicks/src/internal/core/httpx"
 	"shmoopicks/src/internal/library"
+	"shmoopicks/src/internal/library/adapters"
 	"shmoopicks/src/internal/review"
 	"strconv"
 )
@@ -26,6 +27,16 @@ func NewHttpHandler(libraryService *library.Service, reviewService *review.Servi
 func (h *HttpHandler) GetRatingRecommender(w http.ResponseWriter, r *http.Request) {
 	ctx := contextx.NewContextX(r.Context())
 
+	userId, err := ctx.UserId()
+	if err != nil {
+		err = fmt.Errorf("failed to get user ID: %w", err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusBadRequest,
+			Err:    err,
+		})
+		return
+	}
+
 	query := r.URL.Query()
 	albumId := query.Get("albumId")
 	if albumId == "" {
@@ -36,7 +47,19 @@ func (h *HttpHandler) GetRatingRecommender(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err := RatingModal(albumId, review.RatingRecommenderQuestions).Render(ctx, w)
+	album, err := h.libraryService.GetAlbumInLibrary(ctx, userId, albumId)
+	if err != nil {
+		err = fmt.Errorf("failed to get album: %w", err)
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusBadRequest,
+			Err:    err,
+		})
+		return
+	}
+
+	err = RatingModal(*album, RatingModalProps{
+		Questions: &review.RatingRecommenderQuestions,
+	}).Render(ctx, w)
 	if err != nil {
 		err = fmt.Errorf("failed to render response: %w", err)
 		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
@@ -117,11 +140,13 @@ func (h *HttpHandler) SubmitRatingRecommenderQuestions(w http.ResponseWriter, r 
 	score := questionsWithValues.Score()
 
 	err = RatingRecommenderConfirm(*album, score).Render(ctx, w)
-	httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
-		Status: http.StatusInternalServerError,
-		Err:    err,
-	})
-	return
+	if err != nil {
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
+		return
+	}
 }
 
 func (h *HttpHandler) UpdateRatingRecommenderRating(w http.ResponseWriter, r *http.Request) {
@@ -195,11 +220,13 @@ func (h *HttpHandler) UpdateRatingRecommenderRating(w http.ResponseWriter, r *ht
 	}
 
 	err = RatingRecommenderConfirm(*album, score).Render(ctx, w)
-	httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
-		Status: http.StatusInternalServerError,
-		Err:    err,
-	})
-	return
+	if err != nil {
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
+		return
+	}
 }
 
 func (h *HttpHandler) SubmitRatingRecommenderRating(w http.ResponseWriter, r *http.Request) {
@@ -226,7 +253,7 @@ func (h *HttpHandler) SubmitRatingRecommenderRating(w http.ResponseWriter, r *ht
 		return
 	}
 
-	_, err = h.libraryService.GetAlbumInLibrary(ctx, userId, albumId)
+	album, err := h.libraryService.GetAlbumInLibrary(ctx, userId, albumId)
 	if err != nil {
 		err = fmt.Errorf("failed to get album: %w", err)
 		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
@@ -257,11 +284,30 @@ func (h *HttpHandler) SubmitRatingRecommenderRating(w http.ResponseWriter, r *ht
 		return
 	}
 
-	_, err = h.reviewService.UpdateRating(ctx, userId, albumId, score)
+	rating, err := h.reviewService.UpdateRating(ctx, userId, albumId, score)
 	if err != nil {
 		err = fmt.Errorf("failed to update rating: %w", err)
 		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
 			Status: http.StatusBadRequest,
+			Err:    err,
+		})
+		return
+	}
+	album.Rating = rating
+
+	err = CloseRatingModal().Render(ctx, w)
+	if err != nil {
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
+			Err:    err,
+		})
+		return
+	}
+
+	err = adapters.AlbumRating(*album, true).Render(ctx, w)
+	if err != nil {
+		httpx.HandleErrorResponse(ctx, w, httpx.HandleErrorResponseProps{
+			Status: http.StatusInternalServerError,
 			Err:    err,
 		})
 		return

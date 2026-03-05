@@ -2,6 +2,7 @@ package templates
 
 import (
 	"fmt"
+	"strings"
 )
 
 func CreatePageTitle(title string) string {
@@ -10,4 +11,8 @@ func CreatePageTitle(title string) string {
 	}
 
 	return fmt.Sprintf("%s | wax", title)
+}
+
+func FormatCallableID(id string) string {
+	return strings.ReplaceAll(id, "-", "_")
 }

@@ -1,5 +1,7 @@
 package templates
 
+import "fmt"
+
 const globalModalContainerId = "global-modal-container"
 
 templ ModalContainer(isSwap bool) {
@@ -20,7 +22,7 @@ type ModalProps struct {
 
 templ Modal(id string, props ModalProps) {
 	@ModalContainer(true) {
-		<dialog id={ id } class="modal" open>
+		<dialog id={ FormatCallableID(id) } class="modal" open>
 			<div class="modal-box">
 				<form method="dialog">
 					<button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
@@ -38,4 +40,8 @@ templ Modal(id string, props ModalProps) {
 			</div>
 		</dialog>
 	}
+}
+
+templ ForceCloseModal(id string) {
+	<script hx-on:htmx:load={ templ.JSFuncCall(fmt.Sprintf("%s.close", FormatCallableID(id))) }></script>
 }

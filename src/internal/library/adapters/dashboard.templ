@@ -160,14 +160,14 @@ templ AlbumRating(album library.AlbumDTO, isOobSwap bool) {
 		<div
 			id={ GetAlbumRatingID(album.ID) }
 			class="badge badge-soft badge-primary text-nowrap cursor-pointer"
-			hx-get={ fmt.Sprintf("/app/review/rating-recommender?albumId=%s&score=%f", album.ID, *album.Rating.Rating) }
+			hx-get={ fmt.Sprintf("/app/review/rating-recommender?albumId=%s&rating=%f", album.ID, *album.Rating.Rating) }
 			hx-trigger="click"
 			hx-swap="none"
 			if isOobSwap {
 				hx-swap-oob="true"
 			}
 		>
-			{ *album.Rating.Rating } - { review.GetScoreLabel(*album.Rating.Rating) }
+			{ *album.Rating.Rating } - { review.GetRatingLabel(*album.Rating.Rating) }
 		</div>
 	} else {
 		<div

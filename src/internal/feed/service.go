@@ -54,6 +54,9 @@ func (f FeedDTO) IsSyncStale() bool {
 	if f.LastSyncStatus.IsUnsyned() {
 		return false
 	}
+	if f.LastSyncCompletedAt == nil {
+		return true
+	}
 	minStaleTime := time.Now().Add(-MinStaleDuration)
 	return f.LastSyncCompletedAt.Before(minStaleTime)
 }
@@ -165,7 +168,7 @@ func (s *Service) syncAlbumsToLibrary(ctx contextx.ContextX, feed FeedDTO, syncW
 
 		var imageURL string
 		if len(album.Images) > 0 {
-			imageURL = album.Images[len(album.Images)-1].URL
+			imageURL = album.Images[0].URL
 		}
 
 		lib := library.AlbumDTO{

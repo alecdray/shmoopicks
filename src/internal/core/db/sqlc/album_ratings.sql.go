@@ -36,10 +36,11 @@ FROM user_releases
 JOIN releases ON releases.id = user_releases.release_id
 JOIN albums ON albums.id = releases.album_id
 LEFT JOIN album_ratings ON album_ratings.album_id = albums.id AND album_ratings.user_id = user_releases.user_id
+LEFT JOIN track_plays ON track_plays.album_id = albums.id AND track_plays.user_id = user_releases.user_id
 WHERE user_releases.user_id = ?
   AND (album_ratings.id IS NULL OR album_ratings.rating IS NULL)
 GROUP BY albums.id
-ORDER BY MAX(user_releases.added_at) DESC
+ORDER BY MAX(track_plays.played_at) DESC NULLS LAST, MAX(user_releases.added_at) DESC
 LIMIT 20
 `
 

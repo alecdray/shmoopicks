@@ -26,6 +26,9 @@
     --font-weight-medium: 500;
     --font-weight-semibold: 600;
     --font-weight-bold: 700;
+    --tracking-widest: 0.1em;
+    --radius-md: 0.375rem;
+    --radius-xl: 0.75rem;
     --animate-spin: spin 1s linear infinite;
     --blur-xs: 4px;
     --default-transition-duration: 150ms;
@@ -2105,6 +2108,9 @@
   .m-3 {
     margin: calc(var(--spacing) * 3);
   }
+  .m-6 {
+    margin: calc(var(--spacing) * 6);
+  }
   .label {
     @layer daisyui.l1.l2.l3 {
       display: inline-flex;
@@ -2175,6 +2181,14 @@
   }
   .mb-2 {
     margin-bottom: calc(var(--spacing) * 2);
+  }
+  .carousel-item {
+    @layer daisyui.l1.l2.l3 {
+      box-sizing: content-box;
+      display: flex;
+      flex: none;
+      scroll-snap-align: start;
+    }
   }
   .status {
     @layer daisyui.l1.l2.l3 {
@@ -2263,6 +2277,20 @@
       flex-shrink: 0;
     }
   }
+  .carousel {
+    @layer daisyui.l1.l2.l3 {
+      display: inline-flex;
+      overflow-x: scroll;
+      scroll-snap-type: x mandatory;
+      scrollbar-width: none;
+      @media (prefers-reduced-motion: no-preference) {
+        scroll-behavior: smooth;
+      }
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
   .fieldset {
     @layer daisyui.l1.l2.l3 {
       display: grid;
@@ -2346,6 +2374,12 @@
   .h-11 {
     height: calc(var(--spacing) * 11);
   }
+  .h-12 {
+    height: calc(var(--spacing) * 12);
+  }
+  .h-24 {
+    height: calc(var(--spacing) * 24);
+  }
   .h-full {
     height: 100%;
   }
@@ -2363,6 +2397,18 @@
   }
   .w-10 {
     width: calc(var(--spacing) * 10);
+  }
+  .w-12 {
+    width: calc(var(--spacing) * 12);
+  }
+  .w-16 {
+    width: calc(var(--spacing) * 16);
+  }
+  .w-24 {
+    width: calc(var(--spacing) * 24);
+  }
+  .w-26 {
+    width: calc(var(--spacing) * 26);
   }
   .w-32 {
     width: calc(var(--spacing) * 32);
@@ -2438,6 +2484,13 @@
   .resize {
     resize: both;
   }
+  .carousel-center {
+    @layer daisyui.l1.l2 {
+      .carousel-item {
+        scroll-snap-align: center;
+      }
+    }
+  }
   .stats-horizontal {
     @layer daisyui.l1.l2 {
       grid-auto-flow: column;
@@ -2484,8 +2537,16 @@
   .gap-8 {
     gap: calc(var(--spacing) * 8);
   }
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   .overflow-hidden {
     overflow: hidden;
+  }
+  .overflow-x-auto {
+    overflow-x: auto;
   }
   .overflow-y-auto {
     overflow-y: auto;
@@ -2498,6 +2559,12 @@
   }
   .rounded-full {
     border-radius: calc(infinity * 1px);
+  }
+  .rounded-md {
+    border-radius: var(--radius-md);
+  }
+  .rounded-xl {
+    border-radius: var(--radius-xl);
   }
   .border {
     border-style: var(--tw-border-style);
@@ -2602,6 +2669,9 @@
   .px-2 {
     padding-inline: calc(var(--spacing) * 2);
   }
+  .px-4 {
+    padding-inline: calc(var(--spacing) * 4);
+  }
   .px-6 {
     padding-inline: calc(var(--spacing) * 6);
   }
@@ -2614,8 +2684,17 @@
   .py-3 {
     padding-block: calc(var(--spacing) * 3);
   }
+  .py-4 {
+    padding-block: calc(var(--spacing) * 4);
+  }
   .py-6 {
     padding-block: calc(var(--spacing) * 6);
+  }
+  .pt-3 {
+    padding-top: calc(var(--spacing) * 3);
+  }
+  .pb-1 {
+    padding-bottom: calc(var(--spacing) * 1);
   }
   .text-center {
     text-align: center;
@@ -2665,6 +2744,10 @@
     --tw-font-weight: var(--font-weight-semibold);
     font-weight: var(--font-weight-semibold);
   }
+  .tracking-widest {
+    --tw-tracking: var(--tracking-widest);
+    letter-spacing: var(--tracking-widest);
+  }
   .text-nowrap {
     text-wrap: nowrap;
   }
@@ -2686,6 +2769,12 @@
   }
   .text-base-content {
     color: var(--color-base-content);
+  }
+  .text-base-content\/50 {
+    color: var(--color-base-content);
+    @supports (color: color-mix(in lab, red, red)) {
+      color: color-mix(in oklab, var(--color-base-content) 50%, transparent);
+    }
   }
   .text-base-content\/70 {
     color: var(--color-base-content);
@@ -2713,6 +2802,9 @@
   }
   .capitalize {
     text-transform: capitalize;
+  }
+  .uppercase {
+    text-transform: uppercase;
   }
   .opacity-20 {
     opacity: 20%;
@@ -3181,6 +3273,10 @@
   syntax: "*";
   inherits: false;
 }
+@property --tw-tracking {
+  syntax: "*";
+  inherits: false;
+}
 @property --tw-shadow {
   syntax: "*";
   inherits: false;
@@ -3323,6 +3419,7 @@
       --tw-skew-y: initial;
       --tw-border-style: solid;
       --tw-font-weight: initial;
+      --tw-tracking: initial;
       --tw-shadow: 0 0 #0000;
       --tw-shadow-color: initial;
       --tw-shadow-alpha: 100%;

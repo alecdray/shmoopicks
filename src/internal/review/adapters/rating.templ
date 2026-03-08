@@ -74,7 +74,7 @@ templ RatingRecommenderConfirm(album library.AlbumDTO, rating *float64) {
 				</button>
 			</div>
 		</div>
-		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border p-4">
+		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
 			<legend class="fieldset-legend">Rating</legend>
 			<label class="input w-full">
 				<input
@@ -101,6 +101,24 @@ templ RatingRecommenderConfirm(album library.AlbumDTO, rating *float64) {
 				}
 			</label>
 			@RatingRecommenderConfirmError("")
+		</fieldset>
+		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
+			<div class="collapse collapse-arrow">
+				<input type="checkbox"/>
+				<div class="collapse-title">Rating key</div>
+				<div class="collapse-content">
+					<table class="table table-xs">
+						<tbody>
+							for _, entry := range review.RatingKey {
+								<tr>
+									<td class="tabular-nums w-px whitespace-nowrap">{ strconv.FormatFloat(entry.MinValue, 'f', -1, 64) }</td>
+									<td>{ string(entry.Label) }</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</fieldset>
 		<button
 			class="btn btn-primary w-full"

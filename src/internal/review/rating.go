@@ -130,27 +130,34 @@ const (
 	RatingLabelMasterpiece        RatingLabel = "Masterpiece"
 )
 
-func GetRatingLabel(rating float64) RatingLabel {
-	clappedRating := utils.Clamp(rating, 0, 10)
+// RatingKeyEntry defines an inclusive rating range and its associated label.
+type RatingKeyEntry struct {
+	// MinValue is the lowest rating (inclusive) that maps to this label.
+	MinValue float64
+	// MaxValue is the highest rating (inclusive) that maps to this label.
+	MaxValue float64
+	// Label is the human-readable name for this rating range.
+	Label RatingLabel
+}
 
-	switch {
-	case clappedRating < 3.0:
-		return RatingLabelDOA
-	case clappedRating < 4.0:
-		return RatingLabelNope
-	case clappedRating < 6.0:
-		return RatingLabelNotForMe
-	case clappedRating < 6.6:
-		return RatingLabelHasItsMoments
-	case clappedRating < 7.0:
-		return RatingLabelGoodNotGreat
-	case clappedRating < 8.0:
-		return RatingLabelWouldRecommend
-	case clappedRating < 9.0:
-		return RatingLabelEssentialListening
-	case clappedRating < 10.0:
-		return RatingLabelInstantClassic
-	default:
-		return RatingLabelMasterpiece
+var RatingKey = []RatingKeyEntry{
+	{0, 2.9, RatingLabelDOA},
+	{3.0, 3.9, RatingLabelNope},
+	{4.0, 5.9, RatingLabelNotForMe},
+	{6.0, 6.5, RatingLabelHasItsMoments},
+	{6.6, 6.9, RatingLabelGoodNotGreat},
+	{7.0, 7.9, RatingLabelWouldRecommend},
+	{8.0, 8.9, RatingLabelEssentialListening},
+	{9.0, 9.9, RatingLabelInstantClassic},
+	{10.0, 10.0, RatingLabelMasterpiece},
+}
+
+func GetRatingLabel(rating float64) RatingLabel {
+	clampedRating := utils.Clamp(rating, 0, 10)
+	for _, entry := range RatingKey {
+		if clampedRating >= entry.MinValue && clampedRating <= entry.MaxValue {
+			return entry.Label
+		}
 	}
+	return RatingKey[len(RatingKey)-1].Label
 }

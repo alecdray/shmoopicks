@@ -42,7 +42,7 @@ func (s *Service) upsertPlayHistory(ctx context.Context, userID string, items []
 
 		albumImageURL := ""
 		if len(album.Images) > 0 {
-			albumImageURL = album.Images[len(album.Images)-1].URL
+			albumImageURL = album.Images[0].URL
 		}
 
 		albumModel, err := s.db.Queries().GetOrCreateAlbum(ctx, sqlc.GetOrCreateAlbumParams{

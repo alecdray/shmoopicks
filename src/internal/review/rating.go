@@ -119,15 +119,15 @@ var RatingRecommenderQuestions RatingQuestions = RatingQuestions{
 type RatingLabel string
 
 const (
-	RatingLabelDOA                RatingLabel = "DOA"
-	RatingLabelNope               RatingLabel = "Nope"
-	RatingLabelNotForMe           RatingLabel = "Not For Me"
-	RatingLabelHasItsMoments      RatingLabel = "Has Its Moments"
-	RatingLabelGoodNotGreat       RatingLabel = "Good Not Great"
-	RatingLabelWouldRecommend     RatingLabel = "Would Recommend"
-	RatingLabelEssentialListening RatingLabel = "Essential Listening"
-	RatingLabelInstantClassic     RatingLabel = "Instant Classic"
-	RatingLabelMasterpiece        RatingLabel = "Masterpiece"
+	RatingLabelDOA            RatingLabel = "DOA"
+	RatingLabelNope           RatingLabel = "Nope"
+	RatingLabelNotForMe       RatingLabel = "Not For Me"
+	RatingLabelLukewarm       RatingLabel = "Lukewarm"
+	RatingLabelSolid          RatingLabel = "Solid"
+	RatingLabelRecommended    RatingLabel = "Staff Pick"
+	RatingLabelEssential      RatingLabel = "Heavy Rotation"
+	RatingLabelInstantClassic RatingLabel = "Instant Classic"
+	RatingLabelMasterpiece    RatingLabel = "Masterpiece"
 )
 
 // RatingKeyEntry defines an inclusive rating range and its associated label.
@@ -144,10 +144,10 @@ var RatingKey = []RatingKeyEntry{
 	{0, 2.9, RatingLabelDOA},
 	{3.0, 3.9, RatingLabelNope},
 	{4.0, 5.9, RatingLabelNotForMe},
-	{6.0, 6.5, RatingLabelHasItsMoments},
-	{6.6, 6.9, RatingLabelGoodNotGreat},
-	{7.0, 7.9, RatingLabelWouldRecommend},
-	{8.0, 8.9, RatingLabelEssentialListening},
+	{6.0, 6.4, RatingLabelLukewarm},
+	{6.5, 6.9, RatingLabelSolid},
+	{7.0, 7.9, RatingLabelRecommended},
+	{8.0, 8.9, RatingLabelEssential},
 	{9.0, 9.9, RatingLabelInstantClassic},
 	{10.0, 10.0, RatingLabelMasterpiece},
 }

@@ -9,6 +9,7 @@ import (
 	"shmoopicks/src/internal/core/db/models"
 	"shmoopicks/src/internal/core/db/sqlc"
 	"shmoopicks/src/internal/core/utils"
+	"shmoopicks/src/internal/listeninghistory"
 	"shmoopicks/src/internal/review"
 	"sort"
 	"time"
@@ -93,14 +94,15 @@ func NewArtistDTOFromModel(model sqlc.Artist) ArtistDTO {
 }
 
 type AlbumDTO struct {
-	ID        string
-	SpotifyID string
-	Title     string
-	ImageURL  string
-	Artists   []ArtistDTO
-	Tracks    []TrackDTO
-	Releases  ReleaseDTOs
-	Rating    *review.AlbumRatingDTO
+	ID           string
+	SpotifyID    string
+	Title        string
+	ImageURL     string
+	Artists      []ArtistDTO
+	Tracks       []TrackDTO
+	Releases     ReleaseDTOs
+	Rating       *review.AlbumRatingDTO
+	LastPlayedAt *time.Time
 }
 
 func NewAlbumDTOFromModel(model sqlc.Album, artists []ArtistDTO, tracks []TrackDTO, releases []ReleaseDTO, rating *review.AlbumRatingDTO) AlbumDTO {
@@ -167,6 +169,24 @@ func (albums AlbumDTOs) SortByRating(ascending bool) {
 			return *ratingI < *ratingJ
 		}
 		return *ratingI > *ratingJ
+	})
+}
+
+func (albums AlbumDTOs) SortByLastPlayed(ascending bool) {
+	sort.Slice(albums, func(i, j int) bool {
+		if albums[i].LastPlayedAt == nil && albums[j].LastPlayedAt == nil {
+			return false
+		}
+		if albums[i].LastPlayedAt == nil {
+			return ascending
+		}
+		if albums[j].LastPlayedAt == nil {
+			return !ascending
+		}
+		if ascending {
+			return albums[i].LastPlayedAt.Before(*albums[j].LastPlayedAt)
+		}
+		return albums[i].LastPlayedAt.After(*albums[j].LastPlayedAt)
 	})
 }
 
@@ -242,12 +262,14 @@ func (l *Library) tracks() []TrackDTO {
 }
 
 type Service struct {
-	db *db.DB
+	db                     *db.DB
+	listeningHistoryService *listeninghistory.Service
 }
 
-func NewService(db *db.DB) *Service {
+func NewService(db *db.DB, listeningHistoryService *listeninghistory.Service) *Service {
 	return &Service{
-		db: db,
+		db:                     db,
+		listeningHistoryService: listeningHistoryService,
 	}
 }
 
@@ -319,6 +341,12 @@ func (s *Service) GetAlbumsInLibrary(ctx context.Context, userId string) ([]Albu
 		ratingsByAlbumId[rating.AlbumID] = *review.NewAlbumRatingDTOFromModel(rating)
 	}
 
+	lastPlayedAtByAlbumId, err := s.listeningHistoryService.GetLastPlayedAtByAlbumIds(ctx, userId, albumIds)
+	if err != nil {
+		err = fmt.Errorf("failed to get last played at: %w", err)
+		return nil, err
+	}
+
 	var albumDTOs []AlbumDTO
 	for _, album := range albums {
 		dto := NewAlbumDTOFromModel(
@@ -328,6 +356,9 @@ func (s *Service) GetAlbumsInLibrary(ctx context.Context, userId string) ([]Albu
 			releasesByAlbumId[album.ID],
 			utils.NewPointer(ratingsByAlbumId[album.ID]),
 		)
+		if t, ok := lastPlayedAtByAlbumId[album.ID]; ok {
+			dto.LastPlayedAt = &t
+		}
 		albumDTOs = append(albumDTOs, dto)
 	}
 

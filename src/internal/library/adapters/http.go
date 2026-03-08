@@ -8,25 +8,28 @@ import (
 	"shmoopicks/src/internal/core/task"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
+	"shmoopicks/src/internal/listeninghistory"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/spotify"
 )
 
 type HttpHandler struct {
-	spotifyAuth    *spotify.AuthService
-	mb             *musicbrainz.Service
-	feedService    *feed.Service
-	libraryService *library.Service
-	taskManager    *task.TaskManager
+	spotifyAuth            *spotify.AuthService
+	mb                     *musicbrainz.Service
+	feedService            *feed.Service
+	libraryService         *library.Service
+	listeningHistoryService *listeninghistory.Service
+	taskManager            *task.TaskManager
 }
 
-func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service, libraryService *library.Service, taskManager *task.TaskManager) *HttpHandler {
+func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, feedService *feed.Service, libraryService *library.Service, listeningHistoryService *listeninghistory.Service, taskManager *task.TaskManager) *HttpHandler {
 	return &HttpHandler{
-		spotifyAuth:    spotifyAuth,
-		mb:             mb,
-		feedService:    feedService,
-		libraryService: libraryService,
-		taskManager:    taskManager,
+		spotifyAuth:            spotifyAuth,
+		mb:                     mb,
+		feedService:            feedService,
+		libraryService:         libraryService,
+		listeningHistoryService: listeningHistoryService,
+		taskManager:            taskManager,
 	}
 }
 
@@ -60,9 +63,17 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 
 	lib.Albums.SortByDate(false)
 
+	recentAlbums, err := h.listeningHistoryService.GetRecentlyPlayedAlbums(ctx, userId)
+	if err != nil {
+		err = fmt.Errorf("failed to get recently played albums: %w", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	dashboardPage := DashboardPage(DashboardPageProps{
-		Library: lib,
-		Feeds:   feeds,
+		Library:      lib,
+		Feeds:        feeds,
+		RecentAlbums: recentAlbums,
 	})
 	dashboardPage.Render(r.Context(), w)
 }
@@ -105,6 +116,8 @@ func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 		albums.SortByRating(ascending)
 	case "date":
 		albums.SortByDate(ascending)
+	case "lastPlayed":
+		albums.SortByLastPlayed(ascending)
 	}
 
 	component := AlbumsTable(albums, sortBy, dir)

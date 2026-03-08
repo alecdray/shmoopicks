@@ -6,6 +6,7 @@ import (
 	"shmoopicks/src/internal/core/templates"
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
+	"shmoopicks/src/internal/listeninghistory"
 	"shmoopicks/src/internal/review"
 )
 
@@ -18,8 +19,9 @@ func GetAlbumNotesID(albumId string) string {
 }
 
 type DashboardPageProps struct {
-	Feeds   []feed.FeedDTO
-	Library *library.Library
+	Feeds        []feed.FeedDTO
+	Library      *library.Library
+	RecentAlbums []listeninghistory.RecentAlbumDTO
 }
 
 func getFeedsDropdownButtonIndicatorColor(feeds []feed.FeedDTO) templates.NeonColor {
@@ -290,6 +292,11 @@ templ albumRow(album library.AlbumDTO) {
 				<span class="text-sm">{ oldest.Format("Jan 2, 2006") }</span>
 			}
 		</td>
+		<td>
+			if album.LastPlayedAt != nil {
+				<span class="text-sm">{ album.LastPlayedAt.Format("Jan 2, 2006") }</span>
+			}
+		</td>
 		<td class="text-right">
 			<div class="dropdown dropdown-end">
 				<div tabindex="0" role="button" class="btn btn-ghost btn-xs btn-square">
@@ -381,6 +388,9 @@ templ AlbumsTable(albums []library.AlbumDTO, sortedBy string, sortedDir string) 
 						@albumsTableSortableHeader("date", sortedBy, sortedDir) {
 							<span>Date Added</span>
 						}
+						@albumsTableSortableHeader("lastPlayed", sortedBy, sortedDir) {
+							<span>Last Played</span>
+						}
 						<th></th>
 					</tr>
 				</thead>
@@ -447,6 +457,64 @@ templ DashboardHeaderBar(feeds []feed.FeedDTO) {
 	</div>
 }
 
+templ RecentlyPlayedTicker(albums []listeninghistory.RecentAlbumDTO) {
+	if len(albums) > 0 {
+		<div class="w-full bg-base-200 border-b border-base-300 h-10 flex-shrink-0 overflow-hidden flex items-center">
+			<div class="ticker-container overflow-hidden flex-1">
+				<div id="ticker-track" class="ticker-track flex items-center">
+					<div id="ticker-copy" class="flex items-center">
+						for _, album := range albums {
+							<a
+								href={ templ.URL(fmt.Sprintf("https://open.spotify.com/album/%s", album.SpotifyID)) }
+								target="_blank"
+								rel="noopener noreferrer"
+								class="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity mr-6"
+							>
+								if album.ImageURL != "" {
+									<div class="avatar">
+										<div class="mask mask-squircle h-6 w-6 flex-shrink-0">
+											<img src={ album.ImageURL } alt={ album.Title }/>
+										</div>
+									</div>
+								}
+								<span class="text-xs text-nowrap">{ album.Title }</span>
+							</a>
+						}
+					</div>
+					<div class="flex items-center" aria-hidden="true">
+						for _, album := range albums {
+							<a
+								href={ templ.URL(fmt.Sprintf("https://open.spotify.com/album/%s", album.SpotifyID)) }
+								target="_blank"
+								rel="noopener noreferrer"
+								class="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity mr-6"
+							>
+								if album.ImageURL != "" {
+									<div class="avatar">
+										<div class="mask mask-squircle h-6 w-6 flex-shrink-0">
+											<img src={ album.ImageURL } alt={ album.Title }/>
+										</div>
+									</div>
+								}
+								<span class="text-xs text-nowrap">{ album.Title }</span>
+							</a>
+						}
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			(function() {
+				var copy = document.getElementById('ticker-copy');
+				var track = document.getElementById('ticker-track');
+				if (copy && track) {
+					track.style.setProperty('--ticker-offset', '-' + copy.getBoundingClientRect().width + 'px');
+				}
+			})();
+		</script>
+	}
+}
+
 templ DashboardPage(props DashboardPageProps) {
 	@templates.RootComponent(templates.RootProps{
 		Title: templates.CreatePageTitle("Dashboard"),
@@ -454,6 +522,7 @@ templ DashboardPage(props DashboardPageProps) {
 		<div class="h-screen w-full flex flex-col overflow-hidden">
 			@DashboardHeaderBar(props.Feeds)
 			@LibraryStats(props.Library)
+			@RecentlyPlayedTicker(props.RecentAlbums)
 			<div class="flex-1 overflow-y-auto">
 				if props.Library != nil {
 					@AlbumsTable(props.Library.Albums, "date", "desc")

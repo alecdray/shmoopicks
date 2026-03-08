@@ -53,3 +53,22 @@
     font-style: normal;
     font-variation-settings: "wdth" 100;
 }
+
+@keyframes ticker-scroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(var(--ticker-offset, -50%));
+    }
+}
+
+.ticker-track {
+    animation: ticker-scroll 30s linear infinite;
+    width: max-content;
+    will-change: transform;
+}
+
+.ticker-container:hover .ticker-track {
+    animation-play-state: paused;
+}

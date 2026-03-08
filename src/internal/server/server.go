@@ -16,6 +16,7 @@ import (
 	"shmoopicks/src/internal/feed"
 	"shmoopicks/src/internal/library"
 	libraryAdapters "shmoopicks/src/internal/library/adapters"
+	"shmoopicks/src/internal/listeninghistory"
 	"shmoopicks/src/internal/musicbrainz"
 	"shmoopicks/src/internal/review"
 	reviewAdapters "shmoopicks/src/internal/review/adapters"
@@ -26,14 +27,15 @@ import (
 )
 
 type services struct {
-	taskManager *task.TaskManager
-	user        *user.Service
-	musicbrainz *musicbrainz.Service
-	spotifyAuth *spotify.AuthService
-	spotify     *spotify.Service
-	library     *library.Service
-	feed        *feed.Service
-	review      *review.Service
+	taskManager      *task.TaskManager
+	user             *user.Service
+	musicbrainz      *musicbrainz.Service
+	spotifyAuth      *spotify.AuthService
+	spotify          *spotify.Service
+	library          *library.Service
+	feed             *feed.Service
+	review           *review.Service
+	listeningHistory *listeninghistory.Service
 }
 
 func NewServices(app app.App, db *db.DB) *services {
@@ -65,7 +67,12 @@ func NewServices(app app.App, db *db.DB) *services {
 
 	s.spotify = spotify.NewService(s.user, s.spotifyAuth)
 
-	s.library = library.NewService(db)
+	s.listeningHistory = listeninghistory.NewService(db, s.spotify)
+	s.taskManager.RegisterCronTask(
+		listeninghistory.NewSyncListeningHistoryTask(s.listeningHistory),
+	)
+
+	s.library = library.NewService(db, s.listeningHistory)
 
 	s.feed = feed.NewService(db, s.spotify, s.library)
 	s.taskManager.RegisterCronTask(
@@ -106,6 +113,7 @@ func Start(ctx context.Context, app app.App) {
 		services.musicbrainz,
 		services.feed,
 		services.library,
+		services.listeningHistory,
 		services.taskManager,
 	)
 	appMux.Handle("/app/library/dashboard", httpx.HandlerFunc(libraryHandler.GetDashboardPage))

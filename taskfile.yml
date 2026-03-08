@@ -65,3 +65,6 @@ tasks:
       - goose up
       - sqlite3 $GOOSE_DBSTRING .schema > ./db/schema.sql
       - sqlc generate
+  git/commit:
+    cmds:
+      - git commit -m "{{.CLI_ARGS}}"

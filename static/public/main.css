@@ -2306,6 +2306,9 @@
   .max-w-7xl {
     max-width: var(--container-7xl);
   }
+  .max-w-\[50\%\] {
+    max-width: 50%;
+  }
   .max-w-\[75\%\] {
     max-width: 75%;
   }
@@ -2537,6 +2540,15 @@
   }
   .py-6 {
     padding-block: calc(var(--spacing) * 6);
+  }
+  .pt-0 {
+    padding-top: calc(var(--spacing) * 0);
+  }
+  .pt-5 {
+    padding-top: calc(var(--spacing) * 5);
+  }
+  .pb-4 {
+    padding-bottom: calc(var(--spacing) * 4);
   }
   .text-center {
     text-align: center;

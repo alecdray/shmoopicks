@@ -101,6 +101,8 @@ func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 		albums.SortByTitle(ascending)
 	case "artist":
 		albums.SortByArtist(ascending)
+	case "rating":
+		albums.SortByRating(ascending)
 	case "date":
 		albums.SortByDate(ascending)
 	}

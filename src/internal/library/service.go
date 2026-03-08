@@ -145,6 +145,31 @@ func (albums AlbumDTOs) SortByArtist(ascending bool) {
 	})
 }
 
+func (albums AlbumDTOs) SortByRating(ascending bool) {
+	sort.Slice(albums, func(i, j int) bool {
+		var ratingI, ratingJ *float64
+		if albums[i].Rating != nil {
+			ratingI = albums[i].Rating.Rating
+		}
+		if albums[j].Rating != nil {
+			ratingJ = albums[j].Rating.Rating
+		}
+		if ratingI == nil && ratingJ == nil {
+			return false
+		}
+		if ratingI == nil {
+			return ascending
+		}
+		if ratingJ == nil {
+			return !ascending
+		}
+		if ascending {
+			return *ratingI < *ratingJ
+		}
+		return *ratingI > *ratingJ
+	})
+}
+
 func (albums AlbumDTOs) SortByDate(ascending bool) {
 	sort.Slice(albums, func(i, j int) bool {
 		dateI := albums[i].Releases.OldestAddedAtDate()

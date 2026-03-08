@@ -341,14 +341,18 @@ templ albumsTableSortableHeader(colName, sortedBy, sortedDir string) {
 			hx-get={ fmt.Sprintf("/app/library/dashboard/albums-table?sortBy=%s&dir=desc", colName) }
 		}
 	>
-		{ children... }
-		<span>
-			if sortedBy == colName && sortedDir == "desc" {
-				↑
-			} else {
-				↓
-			}
-		</span>
+		<div class="flex gap-2">
+			{ children... }
+			<span>
+				if sortedBy != colName {
+					-
+				} else if sortedDir == "desc" {
+					↑
+				} else {
+					↓
+				}
+			</span>
+		</div>
 	</th>
 }
 
@@ -370,7 +374,9 @@ templ AlbumsTable(albums []library.AlbumDTO, sortedBy string, sortedDir string) 
 						@albumsTableSortableHeader("artist", sortedBy, sortedDir) {
 							<span>Artists</span>
 						}
-						<th><span>Rating</span></th>
+						@albumsTableSortableHeader("rating", sortedBy, sortedDir) {
+							<span>Rating</span>
+						}
 						<th>Formats</th>
 						@albumsTableSortableHeader("date", sortedBy, sortedDir) {
 							<span>Date Added</span>

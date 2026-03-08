@@ -460,7 +460,7 @@ templ DashboardHeaderBar(feeds []feed.FeedDTO) {
 templ RecentlyPlayedCarousel(albums []listeninghistory.RecentAlbumDTO) {
 	if len(albums) > 0 {
 		<div class="w-full flex-shrink-0 overflow-x-auto">
-			<div class="px-4">
+			<div class="px-4 text-left">
 				<span class="text-xs font-semibold uppercase tracking-widest text-base-content/50">Recently Spun</span>
 			</div>
 			<div class="carousel carousel-center gap-3 px-4 py-2">
@@ -479,7 +479,10 @@ templ RecentlyPlayedCarousel(albums []listeninghistory.RecentAlbumDTO) {
 									</div>
 								</div>
 							}
-							<span class="text-xs text-nowrap truncate w-full text-center">{ album.Title }</span>
+							<span class="text-xs text-nowrap truncate w-full text-left">{ album.Title }</span>
+							if album.Artists != "" {
+								<span class="text-xs text-nowrap truncate w-full text-left text-base-content/40">{ album.Artists }</span>
+							}
 						</a>
 					</div>
 				}

@@ -13,6 +13,7 @@ services:
       GOOSE_DRIVER: sqlite3
       GOOSE_DBSTRING: /data/db.sql
       GOOSE_MIGRATION_DIR: ./db/migrations
+      HOST: ${HOST}
       SPOTIFY_ID: ${SPOTIFY_ID}
       SPOTIFY_SECRET: ${SPOTIFY_SECRET}
       CONTACT_EMAIL: ${CONTACT_EMAIL}

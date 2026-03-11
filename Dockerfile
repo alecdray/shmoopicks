@@ -10,8 +10,12 @@ RUN apt-get update && apt-get install -y gcc libc6-dev && rm -rf /var/lib/apt/li
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Install templ code generator
+RUN go install github.com/a-h/templ/cmd/templ@v0.3.977
+
 # Copy source and build
 COPY src/ ./src/
+RUN templ generate ./src/
 RUN CGO_ENABLED=1 GOOS=linux go build -v -o ./bin/app ./src/cmd/app.go
 
 # Runtime stage

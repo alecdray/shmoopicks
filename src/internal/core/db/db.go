@@ -84,6 +84,9 @@ func (db *DB) WithTx(fn func(*DB) error) error {
 }
 
 func (db *DB) runMigrations() error {
+	if err := goose.SetDialect("sqlite3"); err != nil {
+		return err
+	}
 	err := goose.Up(db.sql, migrationsDir)
 
 	if errors.Is(err, goose.ErrNoMigrationFiles) {

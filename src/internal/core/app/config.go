@@ -55,7 +55,7 @@ type Config struct {
 func LoadConfig() *Config {
 	env := NewEnv(GetEnvWithPanic("ENV"))
 	port := GetEnvWithDefault("PORT", "8080")
-	host := GetEnvWithConditionalPanic("Host", fmt.Sprintf("http://127.0.0.1:%s", port), env != EnvLocal)
+	host := GetEnvWithConditionalPanic("HOST", fmt.Sprintf("http://127.0.0.1:%s", port), env != EnvLocal)
 
 	return &Config{
 		Env:                 env,

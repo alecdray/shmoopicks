@@ -3,7 +3,7 @@ package contextx
 import (
 	"context"
 	"errors"
-	"shmoopicks/src/internal/core/app"
+	"github.com/alecdray/wax/src/internal/core/app"
 )
 
 var (

@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 
-	"shmoopicks/src/internal/core/db/models"
+	"github.com/alecdray/wax/src/internal/core/db/models"
 )
 
 const createFeed = `-- name: CreateFeed :one

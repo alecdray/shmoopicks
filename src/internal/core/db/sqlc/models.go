@@ -8,7 +8,7 @@ import (
 	"database/sql"
 	"time"
 
-	"shmoopicks/src/internal/core/db/models"
+	"github.com/alecdray/wax/src/internal/core/db/models"
 )
 
 type Album struct {

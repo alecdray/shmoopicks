@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
-	"shmoopicks/src/internal/core/db"
-	"shmoopicks/src/internal/core/db/sqlc"
+	"github.com/alecdray/wax/src/internal/core/db"
+	"github.com/alecdray/wax/src/internal/core/db/sqlc"
 	"strings"
 
 	"github.com/google/uuid"

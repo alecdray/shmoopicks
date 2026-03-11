@@ -2,8 +2,8 @@ package spotify
 
 import (
 	"fmt"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/user"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/user"
 	"time"
 
 	spotify "github.com/zmb3/spotify/v2"

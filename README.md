@@ -1,4 +1,4 @@
-# Shmoopicks
+# Wax
 
 Listen with wax.
 

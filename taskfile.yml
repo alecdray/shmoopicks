@@ -60,7 +60,7 @@ tasks:
   docker/build:
     cmds:
       - task build/tailwind
-      - docker build -t shmoopicks .
+      - docker build -t wax .
   docker/run:
     cmds:
       - >
@@ -73,7 +73,7 @@ tasks:
         -e JWT_SECRET=$JWT_SECRET
         -e SPOTIFY_TOKEN_SECRET=$SPOTIFY_TOKEN_SECRET
         -e CONTACT_EMAIL=$CONTACT_EMAIL
-        shmoopicks
+        wax
   db/create:
     cmds:
       - goose -dir db/migrations create {{.CLI_ARGS}} sql

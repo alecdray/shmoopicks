@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"shmoopicks/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/contextx"
 	"time"
 
 	spotify "github.com/zmb3/spotify/v2"

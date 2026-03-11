@@ -2,8 +2,8 @@ package httpx
 
 import (
 	"net/http"
-	"shmoopicks/src/internal/core/app"
-	"shmoopicks/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/app"
+	"github.com/alecdray/wax/src/internal/core/contextx"
 
 	"github.com/google/uuid"
 )

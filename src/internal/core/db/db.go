@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"shmoopicks/src/internal/core/db/sqlc"
+	"github.com/alecdray/wax/src/internal/core/db/sqlc"
 	"time"
 
 	"github.com/pressly/goose/v3"

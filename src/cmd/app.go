@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"os"
-	"shmoopicks/src/internal/core/app"
-	"shmoopicks/src/internal/server"
+	"github.com/alecdray/wax/src/internal/core/app"
+	"github.com/alecdray/wax/src/internal/server"
 )
 
 func main() {

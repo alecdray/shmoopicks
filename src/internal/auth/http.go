@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"shmoopicks/src/internal/core/app"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/db/models"
-	"shmoopicks/src/internal/core/httpx"
-	"shmoopicks/src/internal/feed"
-	"shmoopicks/src/internal/spotify"
-	"shmoopicks/src/internal/user"
+	"github.com/alecdray/wax/src/internal/core/app"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/db/models"
+	"github.com/alecdray/wax/src/internal/core/httpx"
+	"github.com/alecdray/wax/src/internal/feed"
+	"github.com/alecdray/wax/src/internal/spotify"
+	"github.com/alecdray/wax/src/internal/user"
 )
 
 type HttpHandler struct {

@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/cryptox"
-	"shmoopicks/src/internal/core/db"
-	"shmoopicks/src/internal/core/db/sqlc"
-	"shmoopicks/src/internal/core/sqlx"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/cryptox"
+	"github.com/alecdray/wax/src/internal/core/db"
+	"github.com/alecdray/wax/src/internal/core/db/sqlc"
+	"github.com/alecdray/wax/src/internal/core/sqlx"
 
 	"github.com/google/uuid"
 )

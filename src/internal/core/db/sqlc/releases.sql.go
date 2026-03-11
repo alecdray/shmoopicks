@@ -8,7 +8,7 @@ package sqlc
 import (
 	"context"
 
-	"shmoopicks/src/internal/core/db/models"
+	"github.com/alecdray/wax/src/internal/core/db/models"
 )
 
 const createRelease = `-- name: CreateRelease :exec

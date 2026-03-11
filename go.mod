@@ -1,4 +1,4 @@
-module shmoopicks
+module github.com/alecdray/wax
 
 go 1.25.5
 

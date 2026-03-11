@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"shmoopicks/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/contextx"
 	"strconv"
 	"strings"
 	"time"

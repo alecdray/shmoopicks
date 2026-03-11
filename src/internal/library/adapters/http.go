@@ -3,13 +3,13 @@ package adapters
 import (
 	"fmt"
 	"net/http"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/db/models"
-	"shmoopicks/src/internal/core/task"
-	"shmoopicks/src/internal/feed"
-	"shmoopicks/src/internal/library"
-	"shmoopicks/src/internal/musicbrainz"
-	"shmoopicks/src/internal/spotify"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/db/models"
+	"github.com/alecdray/wax/src/internal/core/task"
+	"github.com/alecdray/wax/src/internal/feed"
+	"github.com/alecdray/wax/src/internal/library"
+	"github.com/alecdray/wax/src/internal/musicbrainz"
+	"github.com/alecdray/wax/src/internal/spotify"
 )
 
 type HttpHandler struct {

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/task"
-	"shmoopicks/src/internal/spotify"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/task"
+	"github.com/alecdray/wax/src/internal/spotify"
 )
 
 type SyncListeningHistoryTask struct {

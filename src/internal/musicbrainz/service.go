@@ -2,7 +2,7 @@ package musicbrainz
 
 import (
 	"fmt"
-	"shmoopicks/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/contextx"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
 )

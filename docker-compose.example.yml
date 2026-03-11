@@ -1,6 +1,6 @@
 services:
   app:
-    image: shmoopicks
+    image: wax
     build: .
     ports:
       - "${PORT:-4691}:${PORT:-4691}"

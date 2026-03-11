@@ -2,7 +2,7 @@ package review
 
 import (
 	"math"
-	"shmoopicks/src/internal/core/utils"
+	"github.com/alecdray/wax/src/internal/core/utils"
 )
 
 const (

@@ -2,8 +2,8 @@ package task
 
 import (
 	"log/slog"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/db"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/db"
 
 	cron "github.com/robfig/cron/v3"
 )

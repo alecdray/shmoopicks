@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
-	"shmoopicks/src/internal/core/templates"
+	"github.com/alecdray/wax/src/internal/core/templates"
 
 	"github.com/a-h/templ"
 )

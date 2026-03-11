@@ -2,9 +2,9 @@ package review
 
 import (
 	"context"
-	"shmoopicks/src/internal/core/db"
-	"shmoopicks/src/internal/core/db/sqlc"
-	"shmoopicks/src/internal/core/sqlx"
+	"github.com/alecdray/wax/src/internal/core/db"
+	"github.com/alecdray/wax/src/internal/core/db/sqlc"
+	"github.com/alecdray/wax/src/internal/core/sqlx"
 
 	"github.com/google/uuid"
 )

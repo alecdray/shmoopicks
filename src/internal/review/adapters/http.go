@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"shmoopicks/src/internal/core/contextx"
-	"shmoopicks/src/internal/core/httpx"
-	"shmoopicks/src/internal/library"
-	"shmoopicks/src/internal/library/adapters"
-	"shmoopicks/src/internal/review"
+	"github.com/alecdray/wax/src/internal/core/contextx"
+	"github.com/alecdray/wax/src/internal/core/httpx"
+	"github.com/alecdray/wax/src/internal/library"
+	"github.com/alecdray/wax/src/internal/library/adapters"
+	"github.com/alecdray/wax/src/internal/review"
 	"strconv"
 )
 

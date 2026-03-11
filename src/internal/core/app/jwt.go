@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"shmoopicks/src/internal/core/timex"
+	"github.com/alecdray/wax/src/internal/core/timex"
 	"strings"
 	"time"
 
@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	jwtCookieName = "shmoopicks_token"
+	jwtCookieName = "wax_token"
 	jwtTTL        = 1 * timex.Day
 )
 
@@ -28,7 +28,7 @@ func NewClaims() *Claims {
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(jwtTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
-			Issuer:    "shmoopicks",
+			Issuer:    "wax",
 		},
 	}
 }

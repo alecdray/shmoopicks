@@ -1,169 +1,174 @@
 package adapters
 
 import (
-	"fmt"
-	"github.com/alecdray/wax/src/internal/core/templates"
-	"github.com/alecdray/wax/src/internal/library"
-	"github.com/alecdray/wax/src/internal/review"
-	"strconv"
+  "fmt"
+  "github.com/alecdray/wax/src/internal/core/templates"
+  "github.com/alecdray/wax/src/internal/library"
+  "github.com/alecdray/wax/src/internal/review"
+  "strconv"
 )
 
 const RatingModalId = "rating-modal"
 
 func ratingConfirmAlpineData(rating *float64) string {
-	initial := "''"
-	if rating != nil {
-		initial = strconv.FormatFloat(*rating, 'f', -1, 64)
-	}
-	key := "["
-	for i, entry := range review.RatingKey {
-		if i > 0 {
-			key += ","
-		}
-		key += fmt.Sprintf("[%s,%s,'%s']",
-			strconv.FormatFloat(entry.MinValue, 'f', -1, 64),
-			strconv.FormatFloat(entry.MaxValue, 'f', -1, 64),
-			string(entry.Label),
-		)
-	}
-	key += "]"
-	return fmt.Sprintf(`{rating: %s, getRatingLabel(v){const n=parseFloat(v);if(isNaN(n))return'';const c=Math.min(10,Math.max(0,n));const k=%s;for(const[mn,mx,l]of k)if(c>=mn&&c<=mx)return l;return k[k.length-1][2]}}`, initial, key)
+  initial := "''"
+  if rating != nil {
+    initial = strconv.FormatFloat(*rating, 'f', -1, 64)
+  }
+  key := "["
+  for i, entry := range review.RatingKey {
+    if i > 0 {
+      key += ","
+    }
+    key += fmt.Sprintf("[%s,%s,'%s']",
+      strconv.FormatFloat(entry.MinValue, 'f', -1, 64),
+      strconv.FormatFloat(entry.MaxValue, 'f', -1, 64),
+      string(entry.Label),
+    )
+  }
+  key += "]"
+  return fmt.Sprintf(`{rating: %s, getRatingLabel(v){const n=parseFloat(v);if(isNaN(n))return'';const c=Math.min(10,Math.max(0,n));const k=%s;for(const[mn,mx,l]of k)if(c>=mn&&c<=mx)return l;return k[k.length-1][2]}}`, initial, key)
 }
 
 // RatingOption — single radio input + label
 templ RatingQuestionRadio(name review.RatingQuestionKey, opt review.RatingQuestionOption, isSelected bool) {
-	<label class="flex items-center gap-3 cursor-pointer">
-		<input
-			type="radio"
-			name={ name }
-			value={ strconv.Itoa(opt.Value) }
-			class="radio radio-primary radio-sm"
-			checked?={ isSelected }
-		/>
-		<span class="text-base-content/70">{ opt.Label }</span>
-	</label>
+  <label class="flex items-center gap-3 cursor-pointer">
+    <input
+      type="radio"
+      name={ name }
+      value={ strconv.Itoa(opt.Value) }
+      class="radio radio-primary radio-sm"
+      checked?={ isSelected }
+    />
+    <span class="text-base-content/70">{ opt.Label }</span>
+  </label>
 }
 
 templ RatingQuestionFieldset(question review.RatingQuestion) {
-	<fieldset class="flex flex-col gap-3">
-		<legend class="text-base-content font-medium mb-2">{ question.Question }</legend>
-		for _, opt := range question.Options {
-			@RatingQuestionRadio(question.Key, opt, question.Value == opt.Value)
-		}
-	</fieldset>
+  <fieldset class="flex flex-col gap-3">
+    <legend class="text-base-content font-medium mb-2">{ question.Question }</legend>
+    for _, opt := range question.Options {
+      @RatingQuestionRadio(question.Key, opt, question.Value == opt.Value)
+    }
+  </fieldset>
 }
 
 templ RatingRecommenderQuestions(albumId string, questions review.RatingQuestions) {
-	<form
-		hx-post={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", albumId) }
-		hx-swap="outerHTML"
-		class="flex flex-col gap-8"
-	>
-		for _, q := range questions {
-			@RatingQuestionFieldset(q)
-		}
-		<button class="btn btn-primary" type="submit">Calculate Rating</button>
-	</form>
+  <form
+    data-testid="rating-questionnaire"
+    hx-post={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", albumId) }
+    hx-swap="outerHTML"
+    class="flex flex-col gap-8"
+  >
+    for _, q := range questions {
+      @RatingQuestionFieldset(q)
+    }
+    <button class="btn btn-primary" type="submit" data-testid="rating-calculate">Calculate Rating</button>
+  </form>
 }
 
 templ RatingRecommenderConfirm(album library.AlbumDTO, rating *float64) {
-	<form
-		class="flex flex-col gap-4"
-		hx-ext="morph"
-		hx-post={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
-	>
-		<div class="flex items-center gap-2">
-			<p class="max-w-[75%] text-ellipsis text-nowrap overflow-hidden">{ album.Title }</p>
-			<div class="flex gap-1">
-				<button
-					class="btn btn-ghost btn-sm btn-square"
-					type="button"
-					hx-get={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", album.ID) }
-					hx-target="closest form"
-					hx-swap="outerHTML"
-				>
-					@templates.QuestionMarkIcon(templates.IconProps{})
-				</button>
-				<button
-					class="btn btn-ghost btn-sm btn-square text-error"
-					type="button"
-					hx-delete={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
-					hx-swap="none"
-				>
-					@templates.TrashIcon(templates.IconProps{})
-				</button>
-			</div>
-		</div>
-		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
-			<legend class="fieldset-legend">Rating</legend>
-			<label class="input w-full" x-data={ ratingConfirmAlpineData(rating) }>
-				<input
-					name="rating"
-					type="number"
-					min="0"
-					max="10"
-					class="grow"
-					step="0.1"
-					placeholder="Enter your rating"
-					if rating != nil {
-						value={ *rating }
-					}
-					required
-					x-model="rating"
-					autofocus
-				/>
-				<span class="badge badge-primary badge-soft badge-s" x-show="rating !== ''" x-text="getRatingLabel(rating)"></span>
-			</label>
-			@RatingRecommenderConfirmError("")
-		</fieldset>
-		<fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
-			<div class="collapse collapse-arrow">
-				<input type="checkbox"/>
-				<div class="collapse-title">Rating key</div>
-				<div class="collapse-content">
-					<table class="table table-xs">
-						<tbody>
-							for _, entry := range review.RatingKey {
-								<tr>
-									<td class="tabular-nums w-px whitespace-nowrap">{ strconv.FormatFloat(entry.MinValue, 'f', -1, 64) }</td>
-									<td>{ string(entry.Label) }</td>
-								</tr>
-							}
-						</tbody>
-					</table>
-				</div>
-			</div>
-		</fieldset>
-		<button
-			class="btn btn-primary w-full"
-			type="submit"
-			hx-target-error="next .error"
-		>Lock in</button>
-		<p class="label error text-error"></p>
-	</form>
+  <form
+    data-testid="rating-confirm"
+    class="flex flex-col gap-4"
+    hx-ext="morph"
+    hx-post={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
+  >
+    <div class="flex items-center gap-2">
+      <p class="max-w-[75%] text-ellipsis text-nowrap overflow-hidden">{ album.Title }</p>
+      <div class="flex gap-1">
+        <button
+          class="btn btn-ghost btn-sm btn-square"
+          type="button"
+          hx-get={ fmt.Sprintf("/app/review/rating-recommender/questions?albumId=%s", album.ID) }
+          hx-target="closest form"
+          hx-swap="outerHTML"
+        >
+          @templates.QuestionMarkIcon(templates.IconProps{})
+        </button>
+        <button
+          class="btn btn-ghost btn-sm btn-square text-error"
+          type="button"
+          data-testid="rating-delete"
+          hx-delete={ fmt.Sprintf("/app/review/rating-recommender/rating?albumId=%s", album.ID) }
+          hx-swap="none"
+        >
+          @templates.TrashIcon(templates.IconProps{})
+        </button>
+      </div>
+    </div>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
+      <legend class="fieldset-legend">Rating</legend>
+      <label class="input w-full" x-data={ ratingConfirmAlpineData(rating) }>
+        <input
+          name="rating"
+          data-testid="rating-input"
+          type="number"
+          min="0"
+          max="10"
+          class="grow"
+          step="0.1"
+          placeholder="Enter your rating"
+          if rating != nil {
+            value={ *rating }
+          }
+          required
+          x-model="rating"
+          autofocus
+        />
+        <span class="badge badge-primary badge-soft badge-s" x-show="rating !== ''" x-text="getRatingLabel(rating)"></span>
+      </label>
+      @RatingRecommenderConfirmError("")
+    </fieldset>
+    <fieldset class="fieldset bg-base-200 border-base-300 rounded-box w-full border px-4">
+      <div class="collapse collapse-arrow">
+        <input type="checkbox"/>
+        <div class="collapse-title">Rating key</div>
+        <div class="collapse-content">
+          <table class="table table-xs">
+            <tbody>
+              for _, entry := range review.RatingKey {
+                <tr>
+                  <td class="tabular-nums w-px whitespace-nowrap">{ strconv.FormatFloat(entry.MinValue, 'f', -1, 64) }</td>
+                  <td>{ string(entry.Label) }</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </fieldset>
+    <button
+      class="btn btn-primary w-full"
+      type="submit"
+      data-testid="rating-lock-in"
+      hx-target-error="next .error"
+    >Lock in</button>
+    <p class="label error text-error"></p>
+  </form>
 }
 
 templ RatingRecommenderConfirmError(text string) {
-	<p class="label error text-error">{ text }</p>
+  <p class="label error text-error">{ text }</p>
 }
 
 type RatingModalProps struct {
-	Questions *review.RatingQuestions
-	Rating    *float64
+  Questions *review.RatingQuestions
+  Rating    *float64
 }
 
 templ RatingModal(album library.AlbumDTO, props RatingModalProps) {
-	if props.Questions != nil {
-		@templates.Modal(RatingModalId, templates.ModalProps{
-			ModalContent: RatingRecommenderQuestions(album.ID, *props.Questions),
-		})
-	} else {
-		@templates.Modal(RatingModalId, templates.ModalProps{
-			ModalContent: RatingRecommenderConfirm(album, props.Rating),
-		})
-	}
+  if props.Questions != nil {
+    @templates.Modal(RatingModalId, templates.ModalProps{
+      ModalContent: RatingRecommenderQuestions(album.ID, *props.Questions),
+    })
+  } else {
+    @templates.Modal(RatingModalId, templates.ModalProps{
+      ModalContent: RatingRecommenderConfirm(album, props.Rating),
+    })
+  }
 }
 
 templ CloseRatingModal() {
-	@templates.ForceCloseModal(RatingModalId)
+  @templates.ForceCloseModal(RatingModalId)
 }

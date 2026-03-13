@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+// CSSVersion is appended to static CSS URLs for cache busting.
+// Set this at startup (e.g. from the file's mod time).
+var CSSVersion string
+
 func CreatePageTitle(title string) string {
 	if title == "" {
 		title = "Home"

@@ -101,6 +101,10 @@ func Start(ctx context.Context, app app.App) {
 	services.taskManager.Start(contextx.NewContextX(ctx).WithApp(app))
 	defer services.taskManager.Stop()
 
+	if info, err := os.Stat("static/public/main.css"); err == nil {
+		templates.CSSVersion = fmt.Sprintf("%d", info.ModTime().Unix())
+	}
+
 	rootMux := httpx.NewMux(app, httpx.RequestLoggingMiddleware)
 
 	rootMux.Handle("/static/", httpx.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.Dir("static/public")))))

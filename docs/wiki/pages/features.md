@@ -24,6 +24,7 @@ The core of the app. A user's library is their collection of music — albums, a
 - Digital media is automatically synced from Spotify on a recurring schedule
 - Users can browse and sort their library by title, artist, rating, date added, and last played
 - Albums open in Spotify directly from the library
+- All albums load at once on the dashboard — known to cause poor performance on mobile
 
 ---
 

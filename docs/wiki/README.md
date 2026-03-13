@@ -4,9 +4,18 @@ The wiki is the source of truth for the product and architecture of Wax. It capt
 
 ## Scope
 
-The wiki covers **product** and **architecture** — not code implementation. It should be possible to understand Wax completely from the wiki without reading any source code. Implementation details (specific functions, SQL queries, file paths, CSS class names, library-specific tokens or configuration values) do not belong here; the code is the source of truth for those.
+The wiki covers **product** and **architecture** — not code implementation. It should be possible to understand Wax completely from the wiki without reading any source code. Implementation details do not belong here; the code is the source of truth for those.
+
+This applies equally to code *and* tooling/workflow specifics. The following are all implementation details, regardless of which page they might appear on:
+
+- Specific functions, SQL queries, CSS class names
+- File paths, directory structures, and file trees
+- CLI flags, task command invocations, and env variable names
+- Helper names, library-specific configuration values
 
 Write at the level of concepts and behaviour, not mechanics. Ask: "would this sentence need to change if we refactored the implementation without changing the user experience?" If yes, it probably doesn't belong here.
+
+When a wiki page touches an area that has its own README (e.g. `e2e/README.md`, a module README), link to that README for implementation specifics rather than restating or omitting them. This keeps the wiki conceptual while still giving readers a clear path to the details.
 
 ## Structure
 

@@ -9,6 +9,7 @@ links:
   - features
   - vision
   - roadmap
+  - testing
 ---
 
 [wiki](../wiki.md)

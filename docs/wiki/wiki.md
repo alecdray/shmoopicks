@@ -13,3 +13,4 @@
 | [architecture](./pages/architecture.md) | System structure, modules, and key patterns |
 | [integrations](./pages/integrations.md) | External services and how they connect |
 | [frontend](./pages/frontend.md) | UX approach, rendering model, styling |
+| [testing](./pages/testing.md) | Testing strategy, tooling, and agent-driven dev flow |

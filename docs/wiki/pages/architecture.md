@@ -8,6 +8,7 @@ links:
   - data-model
   - integrations
   - frontend
+  - testing
 ---
 
 [wiki](../wiki.md)

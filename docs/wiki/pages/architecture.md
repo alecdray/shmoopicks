@@ -5,9 +5,9 @@ description: >
   tasks, and infrastructure. Does not belong here: UI/rendering concerns (→ frontend), external
   service details (→ integrations), or domain entity definitions (→ data-model).
 links:
-  - "[data-model](data-model.md)"
-  - "[integrations](integrations.md)"
-  - "[frontend](frontend.md)"
+  - data-model
+  - integrations
+  - frontend
 ---
 
 [wiki](../wiki.md)

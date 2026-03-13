@@ -5,9 +5,9 @@ description: >
   belong here: internal system structure (→ architecture), what users see as a result
   (→ features), or how external data maps to domain entities (→ data-model).
 links:
-  - "[architecture](architecture.md)"
-  - "[data-model](data-model.md)"
-  - "[roadmap](roadmap.md)"
+  - architecture
+  - data-model
+  - roadmap
 ---
 
 [wiki](../wiki.md)

@@ -1,22 +1,22 @@
 package templates
 
 type PageLayoutProps struct {
-	Title string
+  Title string
 }
 
 templ PageLayoutComponent(props PageLayoutProps) {
-	@RootComponent(RootProps{
-		Title: props.Title,
-	}) {
-		<div
-			class="navbar bg-base-100 shadow-sm"
-		>
-			<a class="text-5xl font-brand m-3" href="/" hx-boost="true">wax</a>
-		</div>
-		<div
-			class="w-full max-w-7xl p-6"
-		>
-			{ children... }
-		</div>
-	}
+  @RootComponent(RootProps{
+    Title: props.Title,
+  }) {
+    <div
+      class="navbar bg-base-100 shadow-sm"
+    >
+      <a class="text-5xl font-brand m-3" href="/" hx-boost="true">wax</a>
+    </div>
+    <div
+      class="w-full max-w-7xl p-6"
+    >
+      { children... }
+    </div>
+  }
 }

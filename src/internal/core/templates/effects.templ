@@ -5,25 +5,25 @@ import "strings"
 type NeonColor string
 
 const (
-	NeonColorBase    NeonColor = "--color-base-content"
-	NeonColorPrimary NeonColor = "--color-primary"
-	NeonColorSuccess NeonColor = "--color-success"
-	NeonColorWarning NeonColor = "--color-warning"
-	NeonColorError   NeonColor = "--color-error"
+  NeonColorBase    NeonColor = "--color-base-content"
+  NeonColorPrimary NeonColor = "--color-primary"
+  NeonColorSuccess NeonColor = "--color-success"
+  NeonColorWarning NeonColor = "--color-warning"
+  NeonColorError   NeonColor = "--color-error"
 )
 
 type NeonHoverEffect int
 
 const (
-	NeonHoverEffectNone NeonHoverEffect = iota
-	NeonHoverEffectDim
+  NeonHoverEffectNone NeonHoverEffect = iota
+  NeonHoverEffectDim
 )
 
 templ NeonTextEffect(color NeonColor, hoverEffect NeonHoverEffect, classes ...string) {
-	<style>
-		.neon-text-effect, .neon-text-effect-dim {
-			color: color-mix(in srgb, var(--neon-text-effect-color) 30%, #fff);
-			transition: text-shadow 0.3s ease, color 0.3s ease;
+  <style>
+    .neon-text-effect, .neon-text-effect-dim {
+      color: color-mix(in srgb, var(--neon-text-effect-color) 30%, #fff);
+      transition: text-shadow 0.3s ease, color 0.3s ease;
             text-shadow:
                 0 0 0.07em color-mix(in srgb, var(--neon-text-effect-color) 30%, #fff),
                 0 0 0.10em color-mix(in srgb, var(--neon-text-effect-color) 30%, #fff),
@@ -33,9 +33,9 @@ templ NeonTextEffect(color NeonColor, hoverEffect NeonHoverEffect, classes ...st
                 0 0 0.96em var(--neon-text-effect-color),
                 0 0 1.06em var(--neon-text-effect-color),
                 0 0 1.57em var(--neon-text-effect-color);
-		}
+    }
 
-		.neon-text-effect-dim:hover {
+    .neon-text-effect-dim:hover {
             color: color-mix(in srgb, var(--neon-text-effect-color) 100%, #fff);
             text-shadow:
                 0 0 0.07em color-mix(in srgb, var(--neon-text-effect-color) 70%, transparent),
@@ -49,46 +49,46 @@ templ NeonTextEffect(color NeonColor, hoverEffect NeonHoverEffect, classes ...st
         }
 
 
-	</style>
-	<span
-		class={ templ.Classes(templ.KV("neon-text-effect", hoverEffect == NeonHoverEffectNone), templ.KV("neon-text-effect-dim", hoverEffect == NeonHoverEffectDim), templ.Class(strings.Join(classes, " "))) }
-		style={ templ.SafeCSS("--neon-text-effect-color: var(" + color + ");") }
-	>
-		{ children... }
-	</span>
+  </style>
+  <span
+    class={ templ.Classes(templ.KV("neon-text-effect", hoverEffect == NeonHoverEffectNone), templ.KV("neon-text-effect-dim", hoverEffect == NeonHoverEffectDim), templ.Class(strings.Join(classes, " "))) }
+    style={ templ.SafeCSS("--neon-text-effect-color: var(" + color + ");") }
+  >
+    { children... }
+  </span>
 }
 
 templ NeonEffect(color NeonColor, hoverEffect NeonHoverEffect, classes ...string) {
-	<style>
-		.neon-effect, .neon-effect-dim {
-			transition: box-shadow 0.3s ease, opacity 0.3s ease;
-			background: color-mix(in srgb, var(--neon-effect-color) 30%, #fff);
-			box-shadow:
-    			0 0 0.05em color-mix(in srgb, var(--neon-effect-color) 30%, #fff),
-    			0 0 0.1em color-mix(in srgb, var(--neon-effect-color) 30%, #fff),
+  <style>
+    .neon-effect, .neon-effect-dim {
+      transition: box-shadow 0.3s ease, opacity 0.3s ease;
+      background: color-mix(in srgb, var(--neon-effect-color) 30%, #fff);
+      box-shadow:
+          0 0 0.05em color-mix(in srgb, var(--neon-effect-color) 30%, #fff),
+          0 0 0.1em color-mix(in srgb, var(--neon-effect-color) 30%, #fff),
                 0 0 0.2em color-mix(in srgb, var(--neon-effect-color) 30%, #fff),
                 0 0 0.4em var(--neon-effect-color),
-				0 0 0.8em var(--neon-effect-color),
-				0 0 0.9em var(--neon-effect-color),
-				0 0 1.0em var(--neon-effect-color),
-				0 0 1.5em var(--neon-effect-color),
-				inset 0 0 0.1em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-				inset 0 0 0.2em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-				inset 0 0 0.4em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-				inset 0 0 0.8em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-				inset 0 0 0.9em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-				inset 0 0 1.0em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
-		}
+        0 0 0.8em var(--neon-effect-color),
+        0 0 0.9em var(--neon-effect-color),
+        0 0 1.0em var(--neon-effect-color),
+        0 0 1.5em var(--neon-effect-color),
+        inset 0 0 0.1em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+        inset 0 0 0.2em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+        inset 0 0 0.4em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+        inset 0 0 0.8em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+        inset 0 0 0.9em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+        inset 0 0 1.0em color-mix(in srgb, var(--neon-effect-color) 50%, transparent);
+    }
 
-		.neon-effect-dim:hover {
-			opacity: 0.4;
-			box-shadow: none;
-		}
-	</style>
-	<span
-		class={ templ.Classes(templ.KV("neon-effect", hoverEffect == NeonHoverEffectNone), templ.KV("neon-effect-dim", hoverEffect == NeonHoverEffectDim), templ.Class(strings.Join(classes, " "))) }
-		style={ templ.SafeCSS("--neon-effect-color: var(" + color + ");") }
-	>
-		{ children... }
-	</span>
+    .neon-effect-dim:hover {
+      opacity: 0.4;
+      box-shadow: none;
+    }
+  </style>
+  <span
+    class={ templ.Classes(templ.KV("neon-effect", hoverEffect == NeonHoverEffectNone), templ.KV("neon-effect-dim", hoverEffect == NeonHoverEffectDim), templ.Class(strings.Join(classes, " "))) }
+    style={ templ.SafeCSS("--neon-effect-color: var(" + color + ");") }
+  >
+    { children... }
+  </span>
 }

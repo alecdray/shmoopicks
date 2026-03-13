@@ -3,23 +3,23 @@ package auth
 import "github.com/alecdray/wax/src/internal/core/templates"
 
 type LoginPageProps struct {
-	authUrl string
+  authUrl string
 }
 
 templ LoginPage(props LoginPageProps) {
-	@templates.RootComponent(templates.RootProps{
-		Title: templates.CreatePageTitle("Login"),
-	}) {
-		<div
-			class="flex flex-col flex-grow justify-around items-center"
-			hx-boost="true"
-		>
-			<div class="flex flex-col items-start">
-				<h1 class="text-9xl font-brand m-0 p-0">wax</h1>
-			</div>
-			<a data-testid="login-link" href={ props.authUrl }>
-				<button data-testid="login-button" class="btn btn-primary">Login</button>
-			</a>
-		</div>
-	}
+  @templates.RootComponent(templates.RootProps{
+    Title: templates.CreatePageTitle("Login"),
+  }) {
+    <div
+      class="flex flex-col flex-grow justify-around items-center"
+      hx-boost="true"
+    >
+      <div class="flex flex-col items-start">
+        <h1 class="text-9xl font-brand m-0 p-0">wax</h1>
+      </div>
+      <a data-testid="login-link" href={ props.authUrl }>
+        <button data-testid="login-button" class="btn btn-primary">Login</button>
+      </a>
+    </div>
+  }
 }

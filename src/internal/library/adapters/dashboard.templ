@@ -567,9 +567,7 @@ templ carouselStrip(albums []library.AlbumSummaryDTO, emptyMsg string) {
 			for _, album := range albums {
 				<div class="carousel-item">
 					<a
-						href={ templ.URL(fmt.Sprintf("https://open.spotify.com/album/%s", album.SpotifyID)) }
-						target="_blank"
-						rel="noopener noreferrer"
+						href={ templ.URL(fmt.Sprintf("/app/library/albums/%s", album.ID)) }
 						class="flex flex-col items-center gap-1 hover:opacity-80 transition-opacity w-26"
 					>
 						if album.ImageURL != "" {

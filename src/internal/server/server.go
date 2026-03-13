@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+
 	"github.com/alecdray/wax/src/internal/auth"
 	"github.com/alecdray/wax/src/internal/core/app"
 	"github.com/alecdray/wax/src/internal/core/contextx"

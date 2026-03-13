@@ -52,6 +52,25 @@ The UI supports both desktop and mobile. On mobile, the dashboard uses natural d
 
 The library dashboard table is desktop-optimised. The album detail page uses a mobile-first stacked layout and is the primary interaction surface on small screens.
 
+## Visual Design
+
+### Theme
+
+Wax uses a custom DaisyUI theme called **"wax"** — a dark colour scheme built around warm, earthy tones. The palette is organised around:
+
+- **Base surfaces**: Three increasingly lighter near-black browns, creating depth between background layers
+- **Content**: A warm off-white for default text
+- **Primary**: A warm amber/orange — the main brand colour for interactive elements
+- **Secondary**: A deep red-brown for supporting accents
+- **Accent**: A lighter amber, used for highlights and decorative elements
+- **Semantic colours**: Standard info/success/warning/error slots, all warm-tinted to stay coherent with the palette
+
+Light text on dark surfaces is the default. Elements that use the neutral slot (e.g. tooltips) use a dark brown background with light cream text.
+
+### Typography
+
+The brand wordmark uses **Instrument Sans** — a bold, condensed sans-serif. Body text and UI elements use the system/Tailwind default sans-serif stack.
+
 ## Static Assets
 
 CSS is compiled at build time via the Tailwind CLI. JavaScript (HTMX + a small ticker script) is served as static files. No bundler or Node.js runtime is required at runtime.

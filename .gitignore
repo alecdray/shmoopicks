@@ -39,5 +39,7 @@ tmp/
 # Playwright
 test-results/
 playwright-report/
+.playwright-mcp/
+memory/
 
 static/public/main.css

@@ -27,7 +27,7 @@ Planned features in rough priority order. See [features](./features.md) for what
 | **Wishlist** | Track albums you want but don't own yet |
 | **Sleeve Notes** | Attach free-form notes to any library entity |
 | **Linked Albums** | Connect albums to each other, building a personal music graph |
-| **My Library v1.1** | Faceted search, physical media, multiple view modes |
+| **My Library v1.1** | Rework the library table into a list view with faceted filtering and sorting; dashboard UX cleanup: remove Spotify links from album name and artist columns, make album image and artist name clicks open the album detail page; physical media support; multiple view modes |
 | **Auth Error Handling** | Graceful handling of JWT middleware failures and expired/invalid Spotify token failures |
 
 ## Ideas & Open Questions

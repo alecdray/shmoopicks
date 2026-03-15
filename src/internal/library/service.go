@@ -235,6 +235,72 @@ func (albums AlbumDTOs) SortByDate(ascending bool) {
 	})
 }
 
+type FilterParams struct {
+	MinRating *float64
+	MaxRating *float64
+	Rated     string // "only" | "unrated" | ""
+	Formats   []models.ReleaseFormat
+	ArtistIDs []string
+}
+
+func (albums AlbumDTOs) Filter(p FilterParams) AlbumDTOs {
+	if p.MinRating == nil && p.MaxRating == nil && p.Rated == "" && len(p.Formats) == 0 && len(p.ArtistIDs) == 0 {
+		return albums
+	}
+	result := make(AlbumDTOs, 0, len(albums))
+	for _, album := range albums {
+		if p.MinRating != nil {
+			if album.Rating == nil || album.Rating.Rating == nil || *album.Rating.Rating < *p.MinRating {
+				continue
+			}
+		}
+		if p.MaxRating != nil {
+			if album.Rating == nil || album.Rating.Rating == nil || *album.Rating.Rating > *p.MaxRating {
+				continue
+			}
+		}
+		switch p.Rated {
+		case "only":
+			if album.Rating == nil || album.Rating.Rating == nil {
+				continue
+			}
+		case "unrated":
+			if album.Rating != nil && album.Rating.Rating != nil {
+				continue
+			}
+		}
+		if len(p.Formats) > 0 {
+			hasFormat := false
+			for _, format := range p.Formats {
+				if release := album.Releases.FindFormat(format); release != nil && release.AddedAt != nil {
+					hasFormat = true
+					break
+				}
+			}
+			if !hasFormat {
+				continue
+			}
+		}
+		if len(p.ArtistIDs) > 0 {
+			hasArtist := false
+		outer:
+			for _, artistID := range p.ArtistIDs {
+				for _, artist := range album.Artists {
+					if artist.ID == artistID {
+						hasArtist = true
+						break outer
+					}
+				}
+			}
+			if !hasArtist {
+				continue
+			}
+		}
+		result = append(result, album)
+	}
+	return result
+}
+
 type Library struct {
 	OwnerUserID string
 	Albums      AlbumDTOs

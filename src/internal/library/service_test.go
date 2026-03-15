@@ -8,6 +8,16 @@ import (
 	"github.com/alecdray/wax/src/internal/review"
 )
 
+// makeAlbumWithRelease creates an AlbumDTO with a single release format.
+func makeAlbumWithRelease(id, title string, format models.ReleaseFormat) AlbumDTO {
+	now := time.Now()
+	return AlbumDTO{
+		ID:       id,
+		Title:    title,
+		Releases: ReleaseDTOs{{Format: format, AddedAt: &now}},
+	}
+}
+
 // helpers
 
 func ptr[T any](v T) *T { return &v }
@@ -235,5 +245,140 @@ func TestFindFormat_NotFound(t *testing.T) {
 	}
 	if releases.FindFormat(models.ReleaseFormatVinyl) != nil {
 		t.Fatal("expected nil for missing format")
+	}
+}
+
+// --- AlbumDTOs.Filter ---
+
+func TestFilter_NoParams_ReturnsAll(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "A", "", nil, nil),
+		makeAlbum("2", "B", "", ptr(7.0), nil),
+	}
+	result := albums.Filter(FilterParams{})
+	if len(result) != 2 {
+		t.Fatalf("expected 2 albums, got %d", len(result))
+	}
+}
+
+func TestFilter_MinRating(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "Low", "", ptr(5.0), nil),
+		makeAlbum("2", "High", "", ptr(8.0), nil),
+		makeAlbum("3", "Unrated", "", nil, nil),
+	}
+	result := albums.Filter(FilterParams{MinRating: ptr(7.0)})
+	if len(result) != 1 || result[0].ID != "2" {
+		t.Fatalf("expected only high-rated album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_MaxRating(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "Low", "", ptr(4.0), nil),
+		makeAlbum("2", "High", "", ptr(9.0), nil),
+		makeAlbum("3", "Unrated", "", nil, nil),
+	}
+	result := albums.Filter(FilterParams{MaxRating: ptr(6.0)})
+	if len(result) != 1 || result[0].ID != "1" {
+		t.Fatalf("expected only low-rated album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_MinAndMaxRating(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "Low", "", ptr(3.0), nil),
+		makeAlbum("2", "Mid", "", ptr(7.0), nil),
+		makeAlbum("3", "High", "", ptr(10.0), nil),
+	}
+	result := albums.Filter(FilterParams{MinRating: ptr(6.0), MaxRating: ptr(8.0)})
+	if len(result) != 1 || result[0].ID != "2" {
+		t.Fatalf("expected only mid-rated album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_RatedOnly(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "Rated", "", ptr(7.0), nil),
+		makeAlbum("2", "Unrated", "", nil, nil),
+	}
+	result := albums.Filter(FilterParams{Rated: "only"})
+	if len(result) != 1 || result[0].ID != "1" {
+		t.Fatalf("expected only rated album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_UnratedOnly(t *testing.T) {
+	albums := AlbumDTOs{
+		makeAlbum("1", "Rated", "", ptr(7.0), nil),
+		makeAlbum("2", "Unrated", "", nil, nil),
+	}
+	result := albums.Filter(FilterParams{Rated: "unrated"})
+	if len(result) != 1 || result[0].ID != "2" {
+		t.Fatalf("expected only unrated album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_Format(t *testing.T) {
+	vinyl := makeAlbumWithRelease("1", "Vinyl Album", models.ReleaseFormatVinyl)
+	digital := makeAlbumWithRelease("2", "Digital Album", models.ReleaseFormatDigital)
+	albums := AlbumDTOs{vinyl, digital}
+
+	result := albums.Filter(FilterParams{Formats: []models.ReleaseFormat{models.ReleaseFormatVinyl}})
+	if len(result) != 1 || result[0].ID != "1" {
+		t.Fatalf("expected only vinyl album, got %d albums", len(result))
+	}
+}
+
+func TestFilter_Format_ExcludesNoAddedAt(t *testing.T) {
+	// A release without AddedAt means it's not in the library for that format
+	albums := AlbumDTOs{
+		{
+			ID:       "1",
+			Releases: ReleaseDTOs{{Format: models.ReleaseFormatVinyl, AddedAt: nil}},
+		},
+	}
+	result := albums.Filter(FilterParams{Formats: []models.ReleaseFormat{models.ReleaseFormatVinyl}})
+	if len(result) != 0 {
+		t.Fatalf("expected 0 albums (no AddedAt), got %d", len(result))
+	}
+}
+
+func TestFilter_SingleArtist(t *testing.T) {
+	albums := AlbumDTOs{
+		{ID: "1", Artists: []ArtistDTO{{ID: "artist-a", Name: "Artist A"}}},
+		{ID: "2", Artists: []ArtistDTO{{ID: "artist-b", Name: "Artist B"}}},
+	}
+	result := albums.Filter(FilterParams{ArtistIDs: []string{"artist-a"}})
+	if len(result) != 1 || result[0].ID != "1" {
+		t.Fatalf("expected album by artist-a only, got %d albums", len(result))
+	}
+}
+
+func TestFilter_MultipleArtists(t *testing.T) {
+	albums := AlbumDTOs{
+		{ID: "1", Artists: []ArtistDTO{{ID: "artist-a", Name: "Artist A"}}},
+		{ID: "2", Artists: []ArtistDTO{{ID: "artist-b", Name: "Artist B"}}},
+		{ID: "3", Artists: []ArtistDTO{{ID: "artist-c", Name: "Artist C"}}},
+	}
+	result := albums.Filter(FilterParams{ArtistIDs: []string{"artist-a", "artist-b"}})
+	if len(result) != 2 {
+		t.Fatalf("expected 2 albums, got %d", len(result))
+	}
+}
+
+func TestFilter_CombinedFormatAndRating(t *testing.T) {
+	now := time.Now()
+	albums := AlbumDTOs{
+		{ID: "1", Releases: ReleaseDTOs{{Format: models.ReleaseFormatVinyl, AddedAt: &now}}, Rating: &review.AlbumRatingDTO{Rating: ptr(8.0)}},
+		{ID: "2", Releases: ReleaseDTOs{{Format: models.ReleaseFormatVinyl, AddedAt: &now}}, Rating: &review.AlbumRatingDTO{Rating: ptr(5.0)}},
+		{ID: "3", Releases: ReleaseDTOs{{Format: models.ReleaseFormatDigital, AddedAt: &now}}, Rating: &review.AlbumRatingDTO{Rating: ptr(9.0)}},
+	}
+	result := albums.Filter(FilterParams{
+		Formats:   []models.ReleaseFormat{models.ReleaseFormatVinyl},
+		MinRating: ptr(7.0),
+	})
+	if len(result) != 1 || result[0].ID != "1" {
+		t.Fatalf("expected only album 1, got %d albums", len(result))
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"github.com/alecdray/wax/src/internal/core/contextx"
 	"github.com/alecdray/wax/src/internal/core/db/models"
 	"github.com/alecdray/wax/src/internal/core/task"
@@ -30,6 +31,27 @@ func NewHttpHandler(spotifyAuth *spotify.AuthService, mb *musicbrainz.Service, f
 		libraryService: libraryService,
 		taskManager:    taskManager,
 	}
+}
+
+func parseFilterParams(r *http.Request) library.FilterParams {
+	q := r.URL.Query()
+	var fp library.FilterParams
+	if minStr := q.Get("minRating"); minStr != "" {
+		if v, err := strconv.ParseFloat(minStr, 64); err == nil {
+			fp.MinRating = &v
+		}
+	}
+	if maxStr := q.Get("maxRating"); maxStr != "" {
+		if v, err := strconv.ParseFloat(maxStr, 64); err == nil {
+			fp.MaxRating = &v
+		}
+	}
+	fp.Rated = q.Get("rated")
+	if format := q.Get("format"); format != "" {
+		fp.Formats = []models.ReleaseFormat{models.ReleaseFormat(format)}
+	}
+	fp.ArtistIDs = q["artist"]
+	return fp
 }
 
 func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +96,8 @@ func (h *HttpHandler) GetDashboardPage(w http.ResponseWriter, r *http.Request) {
 		Feeds:           feeds,
 		RecentAlbums:    recentAlbums,
 		FirstPageAlbums: lib.Albums.Page(0),
+		Artists:         lib.Artists,
+		FilterParams:    library.FilterParams{},
 	})
 	dashboardPage.Render(r.Context(), w)
 }
@@ -133,10 +157,8 @@ func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 	sortBy := r.URL.Query().Get("sortBy")
 	dir := r.URL.Query().Get("dir")
 
-	// Default to ascending if not specified
 	ascending := dir != "desc"
 
-	// Sort albums based on sortBy parameter
 	switch sortBy {
 	case "album":
 		albums.SortByTitle(ascending)
@@ -150,7 +172,10 @@ func (h *HttpHandler) GetAlbumsTable(w http.ResponseWriter, r *http.Request) {
 		albums.SortByLastPlayed(ascending)
 	}
 
-	component := AlbumsTable(albums.Page(0), sortBy, dir)
+	fp := parseFilterParams(r)
+	albums = albums.Filter(fp)
+
+	component := AlbumsList(albums.Page(0), sortBy, dir, fp, lib.Artists)
 	component.Render(r.Context(), w)
 }
 
@@ -236,12 +261,15 @@ func (h *HttpHandler) GetAlbumsPage(w http.ResponseWriter, r *http.Request) {
 		albums.SortByLastPlayed(ascending)
 	}
 
+	fp := parseFilterParams(r)
+	albums = albums.Filter(fp)
+
 	page := albums.Page(offset)
 	if len(page) == 0 {
 		return
 	}
 
-	albumsTableBody(page, offset, sortBy, dir).Render(r.Context(), w)
+	albumsListBody(page, offset, sortBy, dir, fp).Render(r.Context(), w)
 }
 
 func (h *HttpHandler) GetAlbumDetailPage(w http.ResponseWriter, r *http.Request) {

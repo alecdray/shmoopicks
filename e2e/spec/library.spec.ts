@@ -6,7 +6,9 @@ import { loginAs } from '../helpers/auth';
 const userId = process.env.E2E_TEST_USER_ID;
 const albumId = process.env.E2E_TEST_ALBUM_ID;
 
-test('Viewing the library dashboard', async ({ context, page }) => {
+// --- Dashboard load ---
+
+test('Viewing the library dashboard shows list view', async ({ context, page }) => {
   expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
 
   await loginAs(context, userId!);
@@ -14,8 +16,35 @@ test('Viewing the library dashboard', async ({ context, page }) => {
 
   await expect(page.getByTestId('library-stats')).toBeVisible();
   await expect(page.getByTestId('carousel-recently-spun-tab')).toBeVisible();
-  await expect(page.getByTestId('albums-table')).toBeVisible();
+  await expect(page.getByTestId('albums-list')).toBeVisible();
 });
+
+test('Album rows show art, title, and rating — no Spotify outlinks', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await expect(page.getByTestId('album-list-row').first()).toBeVisible();
+  await expect(page.getByTestId('album-row-title-link').first()).toBeVisible();
+  await expect(page.getByTestId('album-row-rating').first()).toBeVisible();
+
+  // No Spotify outlinks in list rows
+  const spotifyLinks = page.getByTestId('albums-list').locator('a[href*="open.spotify.com"]');
+  await expect(spotifyLinks).toHaveCount(0);
+});
+
+test('No ellipsis menu on album rows', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await expect(page.getByTestId('album-row-menu')).not.toBeVisible();
+  await expect(page.getByTestId('album-row-tags-button')).not.toBeVisible();
+});
+
+// --- Carousel ---
 
 test('Default carousel shows Recently Spun', async ({ context, page }) => {
   expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
@@ -25,7 +54,7 @@ test('Default carousel shows Recently Spun', async ({ context, page }) => {
 
   const tab = page.getByTestId('carousel-recently-spun-tab');
   await expect(tab).toBeVisible();
-  // Active tab has full opacity; inactive tabs are dimmed via text-base-content/40
+  // Active tab has no hx-get trigger
   await expect(tab).not.toHaveAttribute('hx-get');
 });
 
@@ -41,19 +70,140 @@ test('Switching the carousel to Unrated', async ({ context, page }) => {
   await expect(page.getByTestId('carousel-unrated-tab')).not.toHaveAttribute('hx-get');
 });
 
-test('Sorting albums by artist', async ({ context, page }) => {
+// --- Sort chip ---
+
+test('Sort chip is visible and shows default sort', async ({ context, page }) => {
   expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
 
   await loginAs(context, userId!);
   await page.goto('/app/library/dashboard');
 
-  // Click the Artists sortable column header
-  await page.locator('#album-table th', { hasText: 'Artists' }).click();
-
-  // Table reloads — wait for it to settle and verify it is still present
-  await expect(page.getByTestId('albums-table')).toBeVisible();
-  await expect(page.getByTestId('album-row-title-link').first()).toBeVisible();
+  const chip = page.getByTestId('sort-chip');
+  await expect(chip).toBeVisible();
+  await expect(chip).toContainText('Date Added');
 });
+
+test('Sort chip opens a modal', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('sort-chip').click();
+
+  await expect(page.locator('dialog[open]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="sortBy"]').first()).toBeVisible();
+});
+
+test('Sorting by artist via sort chip reloads the list', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('sort-chip').click();
+  await page.locator('dialog[open] input[name="sortBy"][value="artist"]').check();
+  await page.locator('dialog[open] button[type="submit"]').click();
+
+  await expect(page.getByTestId('albums-list')).toBeVisible();
+  await expect(page.getByTestId('sort-chip')).toContainText('Artist');
+});
+
+// --- Rating chip ---
+
+test('Rating chip opens a modal with min/max inputs', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('rating-chip').click();
+
+  await expect(page.locator('dialog[open]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="minRating"]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="maxRating"]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="rated"]').first()).toBeVisible();
+});
+
+test('Rating chip becomes active after applying a min rating filter', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('rating-chip').click();
+  await page.locator('dialog[open] input[name="minRating"]').fill('7');
+  await page.locator('dialog[open] button[type="submit"]').click();
+
+  await expect(page.getByTestId('albums-list')).toBeVisible();
+  await expect(page.getByTestId('rating-chip')).toContainText('7');
+});
+
+test('Filtering to unrated only shows unrated chip label', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('rating-chip').click();
+  await page.locator('dialog[open] input[name="rated"][value="unrated"]').check();
+  await page.locator('dialog[open] button[type="submit"]').click();
+
+  await expect(page.getByTestId('albums-list')).toBeVisible();
+  await expect(page.getByTestId('rating-chip')).toContainText('Unrated');
+});
+
+// --- Format chip ---
+
+test('Format chip opens a modal with format options', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('format-chip').click();
+
+  await expect(page.locator('dialog[open]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="format"][value="vinyl"]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[name="format"][value="digital"]')).toBeVisible();
+});
+
+test('Format chip becomes active after selecting vinyl', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  await page.getByTestId('format-chip').click();
+  await page.locator('dialog[open] input[name="format"][value="vinyl"]').check();
+  await page.locator('dialog[open] button[type="submit"]').click();
+
+  await expect(page.getByTestId('albums-list')).toBeVisible();
+  await expect(page.getByTestId('format-chip')).toContainText('vinyl');
+});
+
+// --- Artist chip ---
+
+test('Artist chip opens a modal when artists exist', async ({ context, page }) => {
+  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
+
+  await loginAs(context, userId!);
+  await page.goto('/app/library/dashboard');
+
+  const chip = page.getByTestId('artist-chip');
+  if (!await chip.isVisible()) {
+    // No artists in library for this test user — skip
+    test.skip();
+    return;
+  }
+
+  await chip.click();
+
+  await expect(page.locator('dialog[open]')).toBeVisible();
+  await expect(page.locator('dialog[open] input[type="checkbox"][name="artist"]').first()).toBeVisible();
+});
+
+// --- Rating modal from list row ---
 
 test('Opening the rating modal from an album row', async ({ context, page }) => {
   expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
@@ -62,19 +212,6 @@ test('Opening the rating modal from an album row', async ({ context, page }) => 
   await page.goto('/app/library/dashboard');
 
   await page.getByTestId('album-row-rating').first().click();
-
-  await expect(page.locator('dialog[open]')).toBeVisible();
-});
-
-
-test('Opening the tags modal from an album row', async ({ context, page }) => {
-  expect(userId, 'E2E_TEST_USER_ID must be set').toBeTruthy();
-
-  await loginAs(context, userId!);
-  await page.goto('/app/library/dashboard');
-
-  await page.getByTestId('album-row-menu').first().click();
-  await page.getByTestId('album-row-tags-button').first().click();
 
   await expect(page.locator('dialog[open]')).toBeVisible();
 });
